@@ -1,0 +1,22 @@
+{
+	"name": "whishops",
+	"version": "1.0.0",
+	"description": "",
+	"main": "server.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bkormylo-whisha/whishops.git"
+	},
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/bkormylo-whisha/whishops/issues"
+	},
+	"homepage": "https://github.com/bkormylo-whisha/whishops#readme",
+	"dependencies": {
+		"express": "^5.1.0"
+	}
+}
