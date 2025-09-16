@@ -1,13 +1,15 @@
 const express = require("express");
 const app = express();
-const PORT = process.env.PORT || 3000;
+const scriptA = require("./run-script-a"); // Import the script
 
-// Define a route for the home page ('/')
-app.get("/", (req, res) => {
-	res.send("Hello, Express!");
+const PORT = process.env.PORT || 8080;
+
+// The API endpoint that triggers the script
+app.get("/run-script-a", (req, res) => {
+	scriptA.run(req, res); // Call the exported function
 });
 
-// Start the server
+// ... other routes and server setup
 app.listen(PORT, () => {
-	console.log(`Server is running on port ${PORT}`);
+	console.log(`Server listening on port ${PORT}`);
 });
