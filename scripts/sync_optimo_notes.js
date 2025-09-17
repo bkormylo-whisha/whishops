@@ -1,21 +1,12 @@
 const { google } = require("googleapis");
 const { GoogleAuth } = require("google-auth-library");
 const { BigQuery } = require("@google-cloud/bigquery");
-const SHEET_SCHEMAS = require("./sheet_schemas.js");
-
-const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
+const { SHEET_SCHEMAS } = require("./sheet_schemas");
 
 exports.run = async (req, res) => {
 	console.log("Running Sync Optimo Notes");
 	try {
-		const auth = new GoogleAuth({
-			scopes: SCOPES,
-		});
-		const authClient = await auth.getClient();
-
-		const sheets = google.sheets({ version: "v4", auth: authClient });
 		await syncOptimoNotes();
-
 		res.status(200).json({ status: "success" });
 	} catch (error) {
 		console.error("Error during API call:", error);
@@ -42,8 +33,6 @@ async function syncOptimoNotes() {
 			accountName: "Midwest/Texas",
 		},
 	];
-
-	var result = [];
 
 	var headers = [
 		"Account name",
@@ -88,9 +77,9 @@ async function syncOptimoNotes() {
 		"REP NAME",
 	];
 
+	var result = [];
 	for (const region of apiKeys) {
 		var orders = await fetchAllOrders(region.key);
-
 		if (orders && orders.length > 0) {
 			let orderCompletionDetails = await fetchOrderDetails(
 				region.key,
@@ -101,7 +90,6 @@ async function syncOptimoNotes() {
 				orderCompletionDetails,
 				region.accountName,
 			);
-
 			console.log(`Got data from region: ${region.accountName}`);
 			result.push(...mergedData);
 		} else {
@@ -110,58 +98,32 @@ async function syncOptimoNotes() {
 	}
 
 	const resultWithHeaders = [headers, ...result];
-
-	// const outSheetID = SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id;
-	// const outSheetName =
-	// 	SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.optimoroute_pod_import;
-	// const outSheetRange = "A1:AN";
-
-	// const outRequest = {
-	// 	valueInputOption: "USER_ENTERED",
-	// 	data: [
-	// 		{
-	// 			range: `${outSheetName}!${outSheetRange}`,
-	// 			majorDimension: "ROWS",
-	// 			values: resultWithHeaders,
-	// 		},
-	// 	],
-	// };
-
-	// try {
-	// 	const clear = Sheets.Spreadsheets.Values.clear(
-	// 		{},
-	// 		outSheetID,
-	// 		`${outSheetName}!${outSheetRange}`,
-	// 	);
-	// 	if (clear) {
-	// 		console.log(clear);
-	// 	} else {
-	// 		console.log("Clear failed");
-	// 	}
-
-	// 	const response = Sheets.Spreadsheets.Values.batchUpdate(
-	// 		outRequest,
-	// 		outSheetID,
-	// 	);
-	// 	if (response) {
-	// 		console.log(response);
-	// 	} else {
-	// 		console.log("No Response");
-	// 	}
-	// } catch (e) {
-	// 	console.log(e);
-	// }
-
-	uploadToBigQuery(result);
-
+	await uploadToSheet(resultWithHeaders);
+	await uploadToBigQuery(result);
 	console.log("Script run complete");
 }
 
-function uploadToBigQuery(data) {
+async function uploadToBigQuery(data) {
 	const bigquery = new BigQuery();
-	const projectId = "test-accel";
+	const projectId = "whishops";
 	const datasetId = "optimo_upload";
 	const tableId = "optimo-upload";
+
+	const fullTableName = `${projectId}.${datasetId}.${tableId}`;
+	const query = `TRUNCATE TABLE \`${fullTableName}\``;
+	const options = {
+		query: query,
+		location: "US",
+	};
+
+	try {
+		const [job] = await bigquery.createQueryJob(options);
+		console.log(`Table ${fullTableName} successfully truncated.`);
+		await job.getQueryResults();
+	} catch (e) {
+		console.error(`Error truncating table ${fullTableName}:`, e);
+		throw e;
+	}
 
 	var sqlheaders = [
 		"account_name",
@@ -214,35 +176,58 @@ function uploadToBigQuery(data) {
 		return obj;
 	});
 
-	let writeDisposition = "WRITE_TRUNCATE";
-	for (let i = 0; i <= rows.length; i += 10000) {
-		const batch = rows
-			.slice(i, 10000 + i)
-			.map((row) => JSON.stringify(row))
-			.join("\n");
-		const blob = Utilities.newBlob(batch, "application/octet-stream");
+	const batchSize = 5000;
+	for (let i = 0; i < rows.length; i += batchSize) {
+		const batch = rows.slice(i, i + batchSize);
+		try {
+			await bigquery.dataset(datasetId).table(tableId).insert(batch);
+			console.log(`Successfully inserted a batch of ${batch.length} rows.`);
+		} catch (e) {
+			console.error(`Error inserting a batch starting at index ${i}:`, e);
+			if (e.errors && e.errors.length > 0) {
+				e.errors.forEach((err) => {
+					console.error("Row-level error:", err);
+				});
+			}
+		}
+	}
+}
 
-		const job = {
-			configuration: {
-				load: {
-					destinationTable: {
-						projectId: projectId,
-						datasetId: datasetId,
-						tableId: tableId,
+async function uploadToSheet(resultWithHeaders) {
+	const outSheetID = SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id;
+	const outSheetName =
+		SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.optimoroute_pod_import;
+	const outSheetRange = "A1:AN";
+
+	const auth = new GoogleAuth({
+		scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+	});
+	const sheets = google.sheets({ version: "v4", auth });
+
+	try {
+		const clear = await sheets.spreadsheets.values.clear({
+			spreadsheetId: outSheetID,
+			range: `${outSheetName}!${outSheetRange}`,
+		});
+		console.log(`Cleared ${clear.data.clearedRange}`);
+
+		const outRequest = {
+			spreadsheetId: outSheetID,
+			resource: {
+				valueInputOption: "USER_ENTERED",
+				data: [
+					{
+						range: `${outSheetName}!${outSheetRange}`,
+						majorDimension: "ROWS",
+						values: resultWithHeaders,
 					},
-					sourceFormat: "NEWLINE_DELIMITED_JSON",
-					writeDisposition: writeDisposition,
-				},
+				],
 			},
 		};
-
-		try {
-			const insertJob = BigQuery.Jobs.insert(job, projectId, blob);
-			console.log(`BigQuery job started: ${insertJob.jobReference.jobId}`);
-			writeDisposition = "WRITE_APPEND";
-		} catch (e) {
-			console.log(`Error inserting data: ${e.message}`);
-		}
+		const response = await sheets.spreadsheets.values.batchUpdate(outRequest);
+		console.log(`Updated cells: ${response.data.totalUpdatedCells}`);
+	} catch (e) {
+		console.error("Error uploading to Google Sheet:", e);
 	}
 }
 
@@ -253,125 +238,47 @@ async function fetchAllOrders(apiKey) {
 	let allOrders = [];
 	let after_tag = null;
 
-	// do {
-	// 	let payload = {
-	// 		dateRange: {
-	// 			from: dateObj.startOf2ndTrailingMonth,
-	// 			to: dateObj.endOf2ndTrailingMonth,
-	// 		},
-	// 		includeOrderData: true,
-	// 		includeScheduleInformation: true,
-	// 	};
+	for (const dates of dateObj) {
+		do {
+			let payload = {
+				dateRange: {
+					from: dates.start,
+					to: dates.end,
+				},
+				includeOrderData: true,
+				includeScheduleInformation: true,
+			};
 
-	// 	if (after_tag) {
-	// 		payload.after_tag = after_tag;
-	// 	}
+			if (after_tag) {
+				payload.after_tag = after_tag;
+			}
 
-	// 	let options = {
-	// 		method: "POST",
-	// 		headers: {
-	// 			"Content-Type": "application/json",
-	// 		},
-	// 		body: JSON.stringify(payload),
-	// 	};
+			let options = {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(payload),
+			};
 
-	// 	try {
-	// 		const response = await fetch(ordersUrl, options);
-	// 		const data = await response.json();
+			try {
+				const response = await fetch(ordersUrl, options);
+				const data = await response.json();
 
-	// 		if (response.ok && data.success) {
-	// 			allOrders = allOrders.concat(data.orders);
+				if (response.ok && data.success) {
+					allOrders = allOrders.concat(data.orders);
 
-	// 			after_tag = data.after_tag || null;
-	// 		} else {
-	// 			console.log(`Failed to fetch orders: ${JSON.stringify(data)}`);
-	// 			break;
-	// 		}
-	// 	} catch (e) {
-	// 		console.log(`Exception: ${e.message}`);
-	// 		break;
-	// 	}
-	// } while (after_tag);
-
-	// do {
-	// 	let payload = {
-	// 		dateRange: {
-	// 			from: dateObj.startOfTrailingMonth,
-	// 			to: dateObj.endOfTrailingMonth,
-	// 		},
-	// 		includeOrderData: true,
-	// 		includeScheduleInformation: true,
-	// 	};
-
-	// 	if (after_tag) {
-	// 		payload.after_tag = after_tag;
-	// 	}
-
-	// 	let options = {
-	// 		method: "POST",
-	// 		headers: {
-	// 			"Content-Type": "application/json",
-	// 		},
-	// 		body: JSON.stringify(payload),
-	// 	};
-
-	// 	try {
-	// 		const response = await fetch(ordersUrl, options);
-	// 		const data = await response.json();
-
-	// 		if (response.ok && data.success) {
-	// 			allOrders = allOrders.concat(data.orders);
-
-	// 			after_tag = data.after_tag || null;
-	// 		} else {
-	// 			console.log(`Failed to fetch orders: ${JSON.stringify(data)}`);
-	// 			break;
-	// 		}
-	// 	} catch (e) {
-	// 		console.log(`Exception: ${e.message}`);
-	// 		break;
-	// 	}
-	// } while (after_tag);
-
-	do {
-		let payload = {
-			dateRange: {
-				from: dateObj.startOfCurrentMonth,
-				to: dateObj.currentDate,
-			},
-			includeOrderData: true,
-			includeScheduleInformation: true,
-		};
-
-		if (after_tag) {
-			payload.after_tag = after_tag;
-		}
-
-		let options = {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(payload),
-		};
-
-		try {
-			const response = await fetch(ordersUrl, options);
-			const data = await response.json();
-
-			if (response.ok && data.success) {
-				allOrders = allOrders.concat(data.orders);
-
-				after_tag = data.after_tag || null;
-			} else {
-				console.log(`Failed to fetch orders: ${JSON.stringify(data)}`);
+					after_tag = data.after_tag || null;
+				} else {
+					console.log(`Failed to fetch orders: ${JSON.stringify(data)}`);
+					break;
+				}
+			} catch (e) {
+				console.log(`Exception: ${e.message}`);
 				break;
 			}
-		} catch (e) {
-			console.log(`Exception: ${e.message}`);
-			break;
-		}
-	} while (after_tag);
+		} while (after_tag);
+	}
 
 	return allOrders;
 }
@@ -420,7 +327,6 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 	});
 
 	return orders.map((order) => {
-		// console.log(order);
 		let detail = detailsMap[order.id] || {};
 		let driverName = `${order.scheduleInformation?.driverName ?? " "}`.split(
 			" ",
@@ -430,7 +336,7 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 			: "";
 		let stopType = order.data.location.locationName.split(":")[0];
 		let invNumber = "";
-		if (order.data.customField5 != "") {
+		if (order.data.customField5 !== "") {
 			invNumber = `${order.data.customField5}`;
 		}
 		let locationName = order.data.location.locationName.split(":")[1];
@@ -451,8 +357,6 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 			detail.data?.form?.dollar_amount_mismatch ?? "",
 			mapYesNoChoice(detail.data?.form?.quantity_match ?? ""),
 			detail.data?.form?.quantity_mismatch ?? "",
-			//detail.data?.form?.whisha_invoice_documentation ?? '',
-			//detail.data?.form?.customer_invoice_documentation ?? '',
 			mapYesNoChoice(detail.data?.form?.check_full_service ?? ""),
 			detail.data?.form?.full_service_invoice_no ?? "",
 			detail.data?.form?.full_service_invoice_amount ?? "",
@@ -460,8 +364,6 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 			detail.data?.form?.customer_amount_mismatch ?? "",
 			mapYesNoChoice(detail.data?.form?.quantity_match_full_service ?? ""),
 			detail.data?.form?.customer_quantity_mismatch ?? "",
-			//detail.data?.form?.whisha_invoice_documentation_full_service ?? '',
-			//detail.data?.form?.customer_invoice_documentation_full_service ?? '',
 			mapYesNoChoice(detail.data?.form?.check_credit ?? ""),
 			detail.data?.form?.credit_no ?? "",
 			detail.data?.form?.credit_amount ?? "",
@@ -469,15 +371,11 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 			detail.data?.form?.customer_amount_mismatch_2 ?? "",
 			mapYesNoChoice(detail.data?.form?.quantity_match_credit_2 ?? ""),
 			detail.data?.form?.customer_quantity_mismatch_2 ?? "",
-			//detail.data?.form?.whisha_credit_documentation ?? '',
-			//detail.data?.form?.customer_credit_documentation ?? '',
 			mapYesNoChoice(detail.data?.form?.order_parked ?? ""),
 			detail.data?.form?.parked_order_amount ?? "",
 			detail.data?.form?.out_of_stocks ?? "",
 			detail.data?.form?.target_po_number_direct ?? "",
 			detail.data?.form?.target_po_number_full_service ?? "",
-			//detail.data?.form?.photos_of_shelf_displays ?? '',
-			//detail.data?.form?.images ?? '',
 			`${order.data.orderNo}${dateToExcelSerialDate(order.data.date)}${repId}`,
 			mapStatus(detail.data.status || ""),
 			detail.data?.form?.note ?? "",
@@ -552,14 +450,20 @@ function getCurrentAndTrailingDates() {
 		0,
 	);
 
-	const dateObject = {
-		currentDate: formatDateToYYYYMMDD(now),
-		startOfCurrentMonth: formatDateToYYYYMMDD(startOfCurrentMonth),
-		endOfTrailingMonth: formatDateToYYYYMMDD(endOfTrailingMonth),
-		startOfTrailingMonth: formatDateToYYYYMMDD(startOfTrailingMonth),
-		endOf2ndTrailingMonth: formatDateToYYYYMMDD(endOf2ndTrailingMonth),
-		startOf2ndTrailingMonth: formatDateToYYYYMMDD(startOf2ndTrailingMonth),
-	};
+	const monthsToFetch = [
+		{
+			start: formatDateToYYYYMMDD(startOf2ndTrailingMonth),
+			end: formatDateToYYYYMMDD(endOf2ndTrailingMonth),
+		},
+		{
+			start: formatDateToYYYYMMDD(startOfTrailingMonth),
+			end: formatDateToYYYYMMDD(endOfTrailingMonth),
+		},
+		{
+			start: formatDateToYYYYMMDD(startOfCurrentMonth),
+			end: formatDateToYYYYMMDD(now),
+		},
+	];
 
-	return dateObject;
+	return monthsToFetch;
 }

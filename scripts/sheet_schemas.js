@@ -1,4 +1,4 @@
-const SHEET_SCHEMAS = {
+export const SHEET_SCHEMAS = {
 	EOQ_TRANSFORMATION_FILE: {
 		id: "1ZYb4OoDwLJoC56sVqAfZAHD6nxfiTTOGgaMqmEm0xGE",
 		prod_id: "1k7buk6OdK-NSOutQ56dYbkv5_MjUmaBtIzMve5ylrPA",
@@ -141,7 +141,7 @@ const SHEET_SCHEMAS = {
 
 	WHISHACCEL_DAILY_COVERAGE: {
 		id: "1SDHPnU3pp4EiD66CSqPf7FhsEqC3gsBcMODQl0IUJjE",
-    sand2: "1nJfonP5Z1s_r0a1NOXFEoqm9c_5o4k-LIA0HWKHWDJM",
+		sand2: "1nJfonP5Z1s_r0a1NOXFEoqm9c_5o4k-LIA0HWKHWDJM",
 		prod_id: "1EG4fUlfd1-wOXjLcoUywuI83sKZiUpTTWpW0zaZK2Sc",
 		pages: {
 			rtg_optimoupload_nc_pnw: "RTG: Optimo Upload NC/PNW",
