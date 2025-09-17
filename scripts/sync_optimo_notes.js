@@ -1,34 +1,29 @@
+const { google } = require("googleapis");
 const { GoogleAuth } = require("google-auth-library");
+const { BigQuery } = require("@google-cloud/bigquery");
+const SHEET_SCHEMAS = require("./sheet_schemas.js");
 
-// Load environment variables (assuming you're using dotenv)
-require("dotenv").config();
+const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 
 exports.run = async (req, res) => {
+	console.log("Running Sync Optimo Notes");
 	try {
-		const credentials = JSON.parse(
-			process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
-		);
-
 		const auth = new GoogleAuth({
-			credentials: {
-				client_email: credentials.client_email,
-				private_key: credentials.private_key,
-			},
-			scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+			scopes: SCOPES,
 		});
-
 		const authClient = await auth.getClient();
-		// Use authClient to make your API calls
 
-		// ... rest of your code
-		res.status(200).send("API call successful!");
+		const sheets = google.sheets({ version: "v4", auth: authClient });
+		await syncOptimoNotes();
+
+		res.status(200).json({ status: "success" });
 	} catch (error) {
 		console.error("Error during API call:", error);
 		res.status(500).send("An error occurred.");
 	}
 };
 
-function syncOptimoNotes() {
+async function syncOptimoNotes() {
 	const apiKeys = [
 		{
 			key: "7f82dd3da751ce38b4e8cebfbf408542hh03uA1gQfQ",
@@ -93,77 +88,77 @@ function syncOptimoNotes() {
 		"REP NAME",
 	];
 
-	apiKeys.forEach((region) => {
-		var orders = fetchAllOrders(region.key);
+	for (const region of apiKeys) {
+		var orders = await fetchAllOrders(region.key);
 
 		if (orders && orders.length > 0) {
-			let orderCompletionDetails = fetchOrderDetails(
+			let orderCompletionDetails = await fetchOrderDetails(
 				region.key,
 				orders.map((order) => order.id),
 			);
-			let mergedData = mergeOrderData(
+			let mergedData = await mergeOrderData(
 				orders,
 				orderCompletionDetails,
 				region.accountName,
 			);
 
-			Logger.log(`Got data from region: ${region.accountName}`);
+			console.log(`Got data from region: ${region.accountName}`);
 			result.push(...mergedData);
-			// uploadToBigQuery(mergedData);
 		} else {
-			Logger.log(`No orders found for region ${region.accountName}`);
+			console.log(`No orders found for region ${region.accountName}`);
 		}
-	});
+	}
 
 	const resultWithHeaders = [headers, ...result];
 
-	const outSheetID = SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id;
-	const outSheetName =
-		SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.optimoroute_pod_import;
-	const outSheetRange = "A1:AN";
+	// const outSheetID = SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id;
+	// const outSheetName =
+	// 	SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.optimoroute_pod_import;
+	// const outSheetRange = "A1:AN";
 
-	const outRequest = {
-		valueInputOption: "USER_ENTERED",
-		data: [
-			{
-				range: `${outSheetName}!${outSheetRange}`,
-				majorDimension: "ROWS",
-				values: resultWithHeaders,
-			},
-		],
-	};
+	// const outRequest = {
+	// 	valueInputOption: "USER_ENTERED",
+	// 	data: [
+	// 		{
+	// 			range: `${outSheetName}!${outSheetRange}`,
+	// 			majorDimension: "ROWS",
+	// 			values: resultWithHeaders,
+	// 		},
+	// 	],
+	// };
 
-	try {
-		const clear = Sheets.Spreadsheets.Values.clear(
-			{},
-			outSheetID,
-			`${outSheetName}!${outSheetRange}`,
-		);
-		if (clear) {
-			Logger.log(clear);
-		} else {
-			Logger.log("Clear failed");
-		}
+	// try {
+	// 	const clear = Sheets.Spreadsheets.Values.clear(
+	// 		{},
+	// 		outSheetID,
+	// 		`${outSheetName}!${outSheetRange}`,
+	// 	);
+	// 	if (clear) {
+	// 		console.log(clear);
+	// 	} else {
+	// 		console.log("Clear failed");
+	// 	}
 
-		const response = Sheets.Spreadsheets.Values.batchUpdate(
-			outRequest,
-			outSheetID,
-		);
-		if (response) {
-			Logger.log(response);
-		} else {
-			Logger.log("No Response");
-		}
-	} catch (e) {
-		console.log(e);
-	}
+	// 	const response = Sheets.Spreadsheets.Values.batchUpdate(
+	// 		outRequest,
+	// 		outSheetID,
+	// 	);
+	// 	if (response) {
+	// 		console.log(response);
+	// 	} else {
+	// 		console.log("No Response");
+	// 	}
+	// } catch (e) {
+	// 	console.log(e);
+	// }
 
 	uploadToBigQuery(result);
 
-	Logger.log("Script run complete");
+	console.log("Script run complete");
 }
 
 function uploadToBigQuery(data) {
+	const bigquery = new BigQuery();
 	const projectId = "test-accel";
 	const datasetId = "optimo_upload";
 	const tableId = "optimo-upload";
@@ -243,109 +238,100 @@ function uploadToBigQuery(data) {
 
 		try {
 			const insertJob = BigQuery.Jobs.insert(job, projectId, blob);
-			Logger.log(`BigQuery job started: ${insertJob.jobReference.jobId}`);
+			console.log(`BigQuery job started: ${insertJob.jobReference.jobId}`);
 			writeDisposition = "WRITE_APPEND";
 		} catch (e) {
-			Logger.log(`Error inserting data: ${e.message}`);
+			console.log(`Error inserting data: ${e.message}`);
 		}
 	}
 }
 
-function fetchAllOrders(apiKey) {
-	const statusesToFetch = [
-		"success",
-		"failed",
-		"rejected",
-		// "unscheduled",
-		"scheduled",
-		"on_route",
-		"servicing",
-	];
+async function fetchAllOrders(apiKey) {
 	let dateObj = getCurrentAndTrailingDates();
 	var searchOrdersUrl = "https://api.optimoroute.com/v1/search_orders";
 	var ordersUrl = `${searchOrdersUrl}?key=${apiKey}`;
 	let allOrders = [];
 	let after_tag = null;
 
-	do {
-		let payload = {
-			dateRange: {
-				from: dateObj.startOf2ndTrailingMonth,
-				to: dateObj.endOf2ndTrailingMonth,
-			},
-			includeOrderData: true,
-			includeScheduleInformation: true,
-			// orderStatus: statusesToFetch,
-		};
+	// do {
+	// 	let payload = {
+	// 		dateRange: {
+	// 			from: dateObj.startOf2ndTrailingMonth,
+	// 			to: dateObj.endOf2ndTrailingMonth,
+	// 		},
+	// 		includeOrderData: true,
+	// 		includeScheduleInformation: true,
+	// 	};
 
-		if (after_tag) {
-			payload.after_tag = after_tag;
-		}
+	// 	if (after_tag) {
+	// 		payload.after_tag = after_tag;
+	// 	}
 
-		let options = {
-			method: "post",
-			contentType: "application/json",
-			payload: JSON.stringify(payload),
-			muteHttpExceptions: true,
-		};
+	// 	let options = {
+	// 		method: "POST",
+	// 		headers: {
+	// 			"Content-Type": "application/json",
+	// 		},
+	// 		body: JSON.stringify(payload),
+	// 	};
 
-		try {
-			let response = UrlFetchApp.fetch(ordersUrl, options);
-			let data = JSON.parse(response.getContentText());
+	// 	try {
+	// 		const response = await fetch(ordersUrl, options);
+	// 		const data = await response.json();
 
-			if (response.getResponseCode() === 200 && data.success) {
-				allOrders = allOrders.concat(data.orders);
+	// 		if (response.ok && data.success) {
+	// 			allOrders = allOrders.concat(data.orders);
 
-				after_tag = data.after_tag || null;
-			} else {
-				Logger.log(`Failed to fetch orders: ${response.getContentText()}`);
-				break;
-			}
-		} catch (e) {
-			Logger.log(`Exception: ${e.message}`);
-			break;
-		}
-	} while (after_tag);
+	// 			after_tag = data.after_tag || null;
+	// 		} else {
+	// 			console.log(`Failed to fetch orders: ${JSON.stringify(data)}`);
+	// 			break;
+	// 		}
+	// 	} catch (e) {
+	// 		console.log(`Exception: ${e.message}`);
+	// 		break;
+	// 	}
+	// } while (after_tag);
 
-	do {
-		let payload = {
-			dateRange: {
-				from: dateObj.startOfTrailingMonth,
-				to: dateObj.endOfTrailingMonth,
-			},
-			includeOrderData: true,
-			includeScheduleInformation: true,
-			// orderStatus: statusesToFetch,
-		};
+	// do {
+	// 	let payload = {
+	// 		dateRange: {
+	// 			from: dateObj.startOfTrailingMonth,
+	// 			to: dateObj.endOfTrailingMonth,
+	// 		},
+	// 		includeOrderData: true,
+	// 		includeScheduleInformation: true,
+	// 	};
 
-		if (after_tag) {
-			payload.after_tag = after_tag;
-		}
+	// 	if (after_tag) {
+	// 		payload.after_tag = after_tag;
+	// 	}
 
-		let options = {
-			method: "post",
-			contentType: "application/json",
-			payload: JSON.stringify(payload),
-			muteHttpExceptions: true,
-		};
+	// 	let options = {
+	// 		method: "POST",
+	// 		headers: {
+	// 			"Content-Type": "application/json",
+	// 		},
+	// 		body: JSON.stringify(payload),
+	// 	};
 
-		try {
-			let response = UrlFetchApp.fetch(ordersUrl, options);
-			let data = JSON.parse(response.getContentText());
+	// 	try {
+	// 		const response = await fetch(ordersUrl, options);
+	// 		const data = await response.json();
 
-			if (response.getResponseCode() === 200 && data.success) {
-				allOrders = allOrders.concat(data.orders);
+	// 		if (response.ok && data.success) {
+	// 			allOrders = allOrders.concat(data.orders);
 
-				after_tag = data.after_tag || null;
-			} else {
-				Logger.log(`Failed to fetch orders: ${response.getContentText()}`);
-				break;
-			}
-		} catch (e) {
-			Logger.log(`Exception: ${e.message}`);
-			break;
-		}
-	} while (after_tag);
+	// 			after_tag = data.after_tag || null;
+	// 		} else {
+	// 			console.log(`Failed to fetch orders: ${JSON.stringify(data)}`);
+	// 			break;
+	// 		}
+	// 	} catch (e) {
+	// 		console.log(`Exception: ${e.message}`);
+	// 		break;
+	// 	}
+	// } while (after_tag);
 
 	do {
 		let payload = {
@@ -355,7 +341,6 @@ function fetchAllOrders(apiKey) {
 			},
 			includeOrderData: true,
 			includeScheduleInformation: true,
-			// orderStatus: statusesToFetch,
 		};
 
 		if (after_tag) {
@@ -363,26 +348,27 @@ function fetchAllOrders(apiKey) {
 		}
 
 		let options = {
-			method: "post",
-			contentType: "application/json",
-			payload: JSON.stringify(payload),
-			muteHttpExceptions: true,
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(payload),
 		};
 
 		try {
-			let response = UrlFetchApp.fetch(ordersUrl, options);
-			let data = JSON.parse(response.getContentText());
+			const response = await fetch(ordersUrl, options);
+			const data = await response.json();
 
-			if (response.getResponseCode() === 200 && data.success) {
+			if (response.ok && data.success) {
 				allOrders = allOrders.concat(data.orders);
 
 				after_tag = data.after_tag || null;
 			} else {
-				Logger.log(`Failed to fetch orders: ${response.getContentText()}`);
+				console.log(`Failed to fetch orders: ${JSON.stringify(data)}`);
 				break;
 			}
 		} catch (e) {
-			Logger.log(`Exception: ${e.message}`);
+			console.log(`Exception: ${e.message}`);
 			break;
 		}
 	} while (after_tag);
@@ -390,7 +376,7 @@ function fetchAllOrders(apiKey) {
 	return allOrders;
 }
 
-function fetchOrderDetails(apiKey, orderIds) {
+async function fetchOrderDetails(apiKey, orderIds) {
 	var completionDetailsUrl =
 		"https://api.optimoroute.com/v1/get_completion_details";
 	var detailsUrl = `${completionDetailsUrl}?key=${apiKey}`;
@@ -399,29 +385,28 @@ function fetchOrderDetails(apiKey, orderIds) {
 	for (let i = 0; i < orderIds.length; i += 500) {
 		let chunk = orderIds.slice(i, i + 500);
 		let payload = {
-			orders: chunk.map((id) => ({ id: id })),
+			orders: chunk.map((id) => ({ id: id ?? "" })),
 		};
 
 		let options = {
-			method: "post",
-			contentType: "application/json",
-			payload: JSON.stringify(payload),
-			muteHttpExceptions: true,
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(payload),
 		};
 
 		try {
-			let response = UrlFetchApp.fetch(detailsUrl, options);
-			let data = JSON.parse(response.getContentText());
+			const response = await fetch(detailsUrl, options);
+			const data = await response.json();
 
-			if (response.getResponseCode() === 200 && data.success) {
+			if (response.ok && data.success) {
 				allDetails = allDetails.concat(data.orders);
 			} else {
-				Logger.log(
-					`Failed to fetch order details: ${response.getContentText()}`,
-				);
+				console.log(`Failed to fetch order details: ${JSON.stringify(data)}`);
 			}
 		} catch (e) {
-			Logger.log(`Exception: ${e.message}`);
+			console.log(`Exception: ${e.message}`);
 		}
 	}
 
