@@ -1,7 +1,7 @@
 const { google } = require("googleapis");
 const { GoogleAuth } = require("google-auth-library");
 const { BigQuery } = require("@google-cloud/bigquery");
-const { SHEET_SCHEMAS } = require("./sheet_schemas");
+const { SHEET_SCHEMAS } = require("../util/sheet_schemas");
 
 exports.run = async (req, res) => {
 	console.log("Running Sync Optimo Notes");
@@ -168,27 +168,25 @@ async function uploadToBigQuery(data) {
 		"rep_name",
 	];
 
-	const rows = data.map((row) => {
-		const obj = {};
-		sqlheaders.forEach((header, i) => {
-			obj[header] = row[i];
-		});
-		return obj;
-	});
-
 	const batchSize = 5000;
-	for (let i = 0; i < rows.length; i += batchSize) {
-		const batch = rows.slice(i, i + batchSize);
+	for (let i = 0; i < data.length; i += batchSize) {
+		const rawBatch = data.slice(i, i + batchSize);
+
+		const processedBatch = rawBatch.map((row) => {
+			const obj = {};
+			sqlheaders.forEach((header, j) => {
+				obj[header] = row[j];
+			});
+			return obj;
+		});
+
 		try {
-			await bigquery.dataset(datasetId).table(tableId).insert(batch);
-			console.log(`Successfully inserted a batch of ${batch.length} rows.`);
+			await bigquery.dataset(datasetId).table(tableId).insert(processedBatch);
+			console.log(
+				`Successfully inserted a batch of ${processedBatch.length} rows.`,
+			);
 		} catch (e) {
-			console.error(`Error inserting a batch starting at index ${i}:`, e);
-			if (e.errors && e.errors.length > 0) {
-				e.errors.forEach((err) => {
-					console.error("Row-level error:", err);
-				});
-			}
+			console.error(`Error inserting batch at index ${i}:`, e);
 		}
 	}
 }
