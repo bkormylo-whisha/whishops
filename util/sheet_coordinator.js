@@ -1,29 +1,28 @@
-/* 
-interface RunAndLogParams {
-	functionName: string;
-	inSheetID: string;
-	inSheetName: string;
-	inSheetRange: string;
-	outSheetID: string;
-	outSheetName: string;
-	outSheetRange: string;
-	insertTimestamp?: boolean;
-	timestampRow?: number;
-	timestampCol?: number;
-} 
-*/
+import { GoogleAuth } from "google-auth-library";
+import { google } from "googleapis";
 
-/**
- * The appObject
- * @param {Object} par The main parameter object.
- * @return {Object} The appObject Object.
- */
+async function getAuthenticatedClient() {
+	const base64String = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+	const jsonString = Buffer.from(base64String, "base64").toString("utf-8");
+	const credentials = JSON.parse(jsonString);
 
-function sheetCoordinator(params) {
-	"use strict";
+	const auth = new GoogleAuth({
+		credentials: {
+			client_email: credentials.client_email,
+			private_key: credentials.private_key,
+		},
+		scopes: ["https://www.googleapis.com/auth/spreadsheets"], // And other scopes
+	});
 
-	function run() {
-		Logger.log(`Running script: ${params.functionName}`);
+	return await auth.getClient();
+}
+
+export function sheetCoordinator(params) {
+	async function run() {
+		const auth = await getAuthenticatedClient();
+		const sheets = google.sheets({ version: "v4", auth });
+
+		console.log(`Running script: ${params.functionName}`);
 
 		const inSheetID = params.inSheetID;
 		const inSheetName = params.inSheetName;
@@ -37,58 +36,58 @@ function sheetCoordinator(params) {
 		const timestampRow = params.timestampRow ?? 0;
 		const timestampCol = params.timestampCol ?? 0;
 
-		Logger.log("Getting initial data from input sheet");
-
-		const inSheetData = Sheets.Spreadsheets.Values.get(
-			inSheetID,
-			`${inSheetName}!${inSheetRange}`,
-			{ valueRenderOption: "FORMATTED_VALUE" },
-		).values;
-
-		Logger.log("Retrieved data successfully");
-
-		if (insertTimestamp) {
-			const today = new Date();
-			inSheetData[timestampRow][timestampCol] = `Last Update: ${today}`;
-		}
-
-		Logger.log(`Data: ${inSheetData[0]}`);
-
-		const outRequest = {
-			valueInputOption: "USER_ENTERED",
-			data: [
-				{
-					range: `${outSheetName}!${outSheetRange}`,
-					majorDimension: "ROWS",
-					values: inSheetData,
-				},
-			],
-		};
+		console.log("Getting initial data from input sheet");
 
 		try {
-			const response = Sheets.Spreadsheets.Values.batchUpdate(
-				outRequest,
-				outSheetID,
-			);
-			if (response) {
-				Logger.log(response);
-			} else {
-				Logger.log("No Response");
+			const getResponse = await sheets.spreadsheets.values.get({
+				spreadsheetId: inSheetID,
+				range: `${inSheetName}!${inSheetRange}`,
+				valueRenderOption: "FORMATTED_VALUE",
+			});
+
+			let inSheetData = getResponse.data.values;
+			if (!inSheetData) {
+				inSheetData = [[]]; // Ensure it's always an array to prevent errors
 			}
+
+			console.log("Retrieved data successfully");
+
+			if (insertTimestamp) {
+				const today = new Date();
+				if (!inSheetData[timestampRow]) {
+					inSheetData[timestampRow] = [];
+				}
+				inSheetData[timestampRow][timestampCol] = `Last Update: ${today}`;
+			}
+
+			console.log(`Data: ${inSheetData[0]}`);
+
+			const outRequest = {
+				spreadsheetId: outSheetID,
+				resource: {
+					valueInputOption: "USER_ENTERED",
+					data: [
+						{
+							range: `${outSheetName}!${outSheetRange}`,
+							majorDimension: "ROWS",
+							values: inSheetData,
+						},
+					],
+				},
+			};
+
+			const updateResponse =
+				await sheets.spreadsheets.values.batchUpdate(outRequest);
+			console.log(`Updated cells: ${updateResponse.data.totalUpdatedCells}`);
 		} catch (e) {
-			console.log(e);
+			console.error("Error during sheet operation:", e);
+			throw e;
 		}
 
-		Logger.log("Script run complete");
+		console.log("Script run complete");
 	}
 
 	return Object.freeze({
 		run: run,
 	});
 }
-
-// myObject = appObject({
-//   someParameter: SpreadsheetApp.getActiveSpreadsheet().getId(),
-// })
-
-// myObject.run();
