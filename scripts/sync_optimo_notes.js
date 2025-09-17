@@ -193,15 +193,29 @@ async function uploadToBigQuery(data) {
 	}
 }
 
+async function getAuthenticatedClient() {
+	const base64String = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+	const jsonString = Buffer.from(base64String, "base64").toString("utf-8");
+	const credentials = JSON.parse(jsonString);
+
+	const auth = new GoogleAuth({
+		credentials: {
+			client_email: credentials.client_email,
+			private_key: credentials.private_key,
+		},
+		scopes: ["https://www.googleapis.com/auth/spreadsheets"], // And other scopes
+	});
+
+	return await auth.getClient();
+}
+
 async function uploadToSheet(resultWithHeaders) {
 	const outSheetID = SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id;
 	const outSheetName =
 		SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.optimoroute_pod_import;
 	const outSheetRange = "A1:AN";
 
-	const auth = new GoogleAuth({
-		scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-	});
+	const auth = await getAuthenticatedClient();
 	const sheets = google.sheets({ version: "v4", auth });
 
 	try {
