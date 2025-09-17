@@ -3,10 +3,10 @@
 
 // The sheet breaks, I doubt this will run without improving the sheet itself
 
-const { SHEET_SCHEMAS } = require("../util/sheet_schemas");
-const { sheetCoordinator } = require("../util/sheet_coordinator");
+import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
+import { sheetCoordinator } from "../util/sheet_coordinator.js";
 
-exports.run = async (req, res) => {
+export const run = async (req, res) => {
 	console.log("Running Sync Routing KPI Data");
 	try {
 		await syncRoutingKpiData();

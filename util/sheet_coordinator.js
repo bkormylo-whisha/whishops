@@ -36,6 +36,8 @@ export function sheetCoordinator(params) {
 		const timestampRow = params.timestampRow ?? 0;
 		const timestampCol = params.timestampCol ?? 0;
 
+		const wipePreviousData = params.wipePreviousData ?? false;
+
 		console.log("Getting initial data from input sheet");
 
 		try {
@@ -60,7 +62,14 @@ export function sheetCoordinator(params) {
 				inSheetData[timestampRow][timestampCol] = `Last Update: ${today}`;
 			}
 
-			console.log(`Data: ${inSheetData[0]}`);
+			if (wipePreviousData) {
+				console.log("Wiping previous data from output sheet...");
+				const clearResponse = await sheets.spreadsheets.values.clear({
+					spreadsheetId: outSheetID,
+					range: `${outSheetName}!${outSheetRange}`,
+				});
+				console.log(`Cleared range: ${clearResponse.data.clearedRange}`);
+			}
 
 			const outRequest = {
 				spreadsheetId: outSheetID,

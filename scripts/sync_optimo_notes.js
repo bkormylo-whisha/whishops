@@ -1,9 +1,9 @@
-const { google } = require("googleapis");
-const { GoogleAuth } = require("google-auth-library");
-const { BigQuery } = require("@google-cloud/bigquery");
-const { SHEET_SCHEMAS } = require("../util/sheet_schemas");
+import { google } from "googleapis";
+import { GoogleAuth } from "google-auth-library";
+import { BigQuery } from "@google-cloud/bigquery";
+import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
 
-exports.run = async (req, res) => {
+export const run = async (req, res) => {
 	console.log("Running Sync Optimo Notes");
 	try {
 		await syncOptimoNotes();
