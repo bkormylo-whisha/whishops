@@ -2,11 +2,12 @@ import { google } from "googleapis";
 import { GoogleAuth } from "google-auth-library";
 import { BigQuery } from "@google-cloud/bigquery";
 import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
+import { logRuntimeFor } from "../util/log_runtime_for.js";
 
 export const run = async (req, res) => {
 	console.log("Running Sync Optimo Notes");
 	try {
-		await syncOptimoNotes();
+		await logRuntimeFor(syncOptimoVisitDuration);
 		res.status(200).json({ status: "success" });
 	} catch (error) {
 		console.error("Error during API call:", error);
@@ -14,7 +15,8 @@ export const run = async (req, res) => {
 	}
 };
 
-async function syncOptimoNotes() {
+// First get the list of order IDs from BQ since we already have them
+async function syncOptimoVisitDuration() {
 	const apiKeys = [
 		{
 			key: "7f82dd3da751ce38b4e8cebfbf408542hh03uA1gQfQ",
@@ -34,52 +36,28 @@ async function syncOptimoNotes() {
 		},
 	];
 
-	var headers = [
-		"Account name",
-		"Order No",
-		"Driver Name",
-		"Date",
-		"Location Name",
-		"Custom Field 5",
-		"Status",
-		"Form Note",
-		"Direct order",
-		"Delivered",
-		"Direct order invoice amount",
-		"Dollar amount match (direct order)?",
-		"Amount mismatch details",
-		"Unit quantity match (direct order)?",
-		"Unit quantity mismatch details",
-		"Full service invoice",
-		"Full service invoice number",
-		"Full service invoice amount",
-		"Dollar amount match (full service)?",
-		"Amount mismatch details",
-		"Unit quantity match (full service)?",
-		"Unit quantity mismatch details",
-		"Credit?",
-		"Credit number",
-		"Credit amount",
-		"Dollar amount match (credit)?",
-		"Amount mismatch details",
-		"Unit quantity match (credit)?",
-		"Unit quantity mismatch details",
-		"Parked order?",
-		"Parked order amount",
-		"Out-of-stocks",
-		"Target PO Number (direct order)",
-		"Target PO Number (full service)",
-		"UNIQUE ID",
-		"STATUS",
-		"POD NOTES",
-		"STOP TYPE",
-		"INV NUMBER",
-		"REP NAME",
-	];
+	const orderHistory = await getOrderHistoryFromBQ();
+	// Divide this by the account_name so the api call actually gets the correct orders
+	const regionalOrderHistory = {
+		ncpnw: orderHistory.filter(
+			(order) => order.account_name === "NorCal/Pacific Northwest",
+		),
+		scrm: orderHistory.filter(
+			(order) => order.account_name === "SoCal/Rock Mountain",
+		),
+		mwtx: orderHistory.filter(
+			(order) => order.account_name === "Midwest/Texas",
+		),
+		nefl: orderHistory.filter(
+			(order) => order.account_name === "Northeast/Florida",
+		),
+	};
+
+	console.log(regionalOrderHistory.ncpnw.length);
 
 	var result = [];
 	for (const region of apiKeys) {
-		var orders = await fetchAllOrders(region.key);
+		var orders = await fetchOrderCompletionTimes(region.key);
 		if (orders && orders.length > 0) {
 			let orderCompletionDetails = await fetchOrderDetails(
 				region.key,
@@ -97,8 +75,6 @@ async function syncOptimoNotes() {
 		}
 	}
 
-	const resultWithHeaders = [headers, ...result];
-	await uploadToSheet(resultWithHeaders);
 	await uploadToBigQuery(result);
 	console.log("Script run complete");
 }
@@ -106,14 +82,14 @@ async function syncOptimoNotes() {
 async function uploadToBigQuery(data) {
 	const bigquery = new BigQuery();
 	const projectId = "whishops";
-	const datasetId = "optimo_upload";
-	const tableId = "optimo-upload";
+	const datasetId = "order_management";
+	const tableId = "optimo-visit-duration";
 
 	const fullTableName = `${projectId}.${datasetId}.${tableId}`;
 	const query = `TRUNCATE TABLE \`${fullTableName}\``;
 	const options = {
 		query: query,
-		location: "US",
+		location: "us-west1",
 	};
 
 	try {
@@ -191,59 +167,50 @@ async function uploadToBigQuery(data) {
 	}
 }
 
-async function getAuthenticatedClient() {
-	const base64String = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
-	const jsonString = Buffer.from(base64String, "base64").toString("utf-8");
-	const credentials = JSON.parse(jsonString);
-
-	const auth = new GoogleAuth({
-		credentials: {
-			client_email: credentials.client_email,
-			private_key: credentials.private_key,
-		},
-		scopes: ["https://www.googleapis.com/auth/spreadsheets"], // And other scopes
-	});
-
-	return await auth.getClient();
-}
-
-async function uploadToSheet(resultWithHeaders) {
-	const outSheetID = SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id;
-	const outSheetName =
-		SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.optimoroute_pod_import;
-	const outSheetRange = "A1:AN";
-
-	const auth = await getAuthenticatedClient();
-	const sheets = google.sheets({ version: "v4", auth });
-
+async function getOrderHistoryFromBQ() {
 	try {
-		const clear = await sheets.spreadsheets.values.clear({
-			spreadsheetId: outSheetID,
-			range: `${outSheetName}!${outSheetRange}`,
-		});
-		console.log(`Cleared ${clear.data.clearedRange}`);
+		const bigquery = new BigQuery();
+		const today = new Date();
 
-		const outRequest = {
-			spreadsheetId: outSheetID,
-			resource: {
-				valueInputOption: "USER_ENTERED",
-				data: [
-					{
-						range: `${outSheetName}!${outSheetRange}`,
-						majorDimension: "ROWS",
-						values: resultWithHeaders,
-					},
-				],
-			},
-		};
-		const response = await sheets.spreadsheets.values.batchUpdate(outRequest);
-		console.log(`Updated cells: ${response.data.totalUpdatedCells}`);
-	} catch (e) {
-		console.error("Error uploading to Google Sheet:", e);
+		const firstDayOfCurrentMonth = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			1,
+		);
+		const lastDayOfPreviousMonth = new Date(
+			firstDayOfCurrentMonth.setDate(firstDayOfCurrentMonth.getDate() - 1),
+		);
+		const firstDayOfPreviousMonth = new Date(
+			lastDayOfPreviousMonth.getFullYear(),
+			lastDayOfPreviousMonth.getMonth(),
+			1,
+		);
+		const startDate = firstDayOfPreviousMonth.toISOString().split("T")[0];
+		const endDate = lastDayOfPreviousMonth.toISOString().split("T")[0];
+
+		const query = `
+			SELECT *
+			FROM \`whishops.order_management.optimo-visit-log\`
+			WHERE
+				date >= '${startDate}'
+				AND date <= '${endDate}'
+		`;
+
+		console.log("Executing query");
+		const [rows] = await bigquery.query(query);
+
+		const storeMap = new Map();
+		for (const row of rows) {
+			storeMap.set(row.stop_id, row);
+		}
+		return storeMap;
+	} catch (error) {
+		console.error("Error during BigQuery API call:", error);
+		throw error;
 	}
 }
 
-async function fetchAllOrders(apiKey) {
+async function fetchOrderCompletionTimes(apiKey) {
 	let dateObj = getCurrentAndTrailingDates();
 	var searchOrdersUrl = "https://api.optimoroute.com/v1/search_orders";
 	var ordersUrl = `${searchOrdersUrl}?key=${apiKey}`;
@@ -259,6 +226,14 @@ async function fetchAllOrders(apiKey) {
 				},
 				includeOrderData: true,
 				includeScheduleInformation: true,
+				orderStatus: [
+					"scheduled",
+					"on_route",
+					"servicing",
+					"success",
+					"failed",
+					"rejected",
+				],
 			};
 
 			if (after_tag) {

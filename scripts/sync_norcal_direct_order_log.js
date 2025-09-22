@@ -2,7 +2,6 @@ import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
 import { sheetCoordinator } from "../util/sheet_coordinator.js";
 
 export const run = async (req, res) => {
-	console.log("Running script: Sync Norcal Direct Order Log");
 	try {
 		await syncNorcalDirectOrderLog();
 		res.status(200).json({ status: "success" });

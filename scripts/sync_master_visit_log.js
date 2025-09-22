@@ -1,13 +1,25 @@
-function syncMasterVisitLog() {
-	getTableDataFromBQ();
+import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
+
+export const run = async (req, res) => {
+	try {
+		await syncMasterVisitLog();
+		res.status(200).json({ status: "success" });
+	} catch (error) {
+		console.error("Error during API call:", error);
+		res.status(500).send("An error occurred.");
+	}
+};
+
+async function syncMasterVisitLog() {
+	await getTableDataFromBQ();
 
 	Logger.log("Script run complete");
 }
 
-function getTableDataFromBQ() {
+async function getTableDataFromBQ() {
 	const projectId = "test-accel";
-	const datasetId = "optimo_upload";
-	const tableId = "optimo-upload";
+	const datasetId = "order_management";
+	const tableId = "optimo-visit-log";
 
 	const query = `SELECT 
         order_no,

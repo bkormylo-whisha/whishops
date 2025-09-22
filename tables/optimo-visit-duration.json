@@ -1,0 +1,147 @@
+[
+	{
+		"name": "stop_id",
+		"type": "STRING",
+		"mode": "REQUIRED"
+	},
+	{
+		"name": "store",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "address",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "city",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "state",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "zip",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "stop_id_2",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "start",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "lunch_start",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "lunch_end",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "end",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "saturday_hours_and_notes",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "action_flag",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "id",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "banner",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "stop_id_3",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "region",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "do_not_sell_list",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "sold_here",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "full",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "direct",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "sprint",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "supply",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "cin7_name",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "last_visit",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "on_gs",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "on_fss",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "address_full",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "ship_eligible",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	}
+]

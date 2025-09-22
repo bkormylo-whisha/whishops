@@ -1,21 +1,5 @@
-import { GoogleAuth } from "google-auth-library";
 import { google } from "googleapis";
-
-async function getAuthenticatedClient() {
-	const base64String = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
-	const jsonString = Buffer.from(base64String, "base64").toString("utf-8");
-	const credentials = JSON.parse(jsonString);
-
-	const auth = new GoogleAuth({
-		credentials: {
-			client_email: credentials.client_email,
-			private_key: credentials.private_key,
-		},
-		scopes: ["https://www.googleapis.com/auth/spreadsheets"], // And other scopes
-	});
-
-	return await auth.getClient();
-}
+import getAuthenticatedClient from "./sheet_auth.js";
 
 export function sheetCoordinator(params) {
 	async function run() {
@@ -44,12 +28,12 @@ export function sheetCoordinator(params) {
 			const getResponse = await sheets.spreadsheets.values.get({
 				spreadsheetId: inSheetID,
 				range: `${inSheetName}!${inSheetRange}`,
-				valueRenderOption: "FORMATTED_VALUE",
+				valueRenderOption: "UNFORMATTED_VALUE",
 			});
 
 			let inSheetData = getResponse.data.values;
 			if (!inSheetData) {
-				inSheetData = [[]]; // Ensure it's always an array to prevent errors
+				inSheetData = [[]];
 			}
 
 			console.log("Retrieved data successfully");
