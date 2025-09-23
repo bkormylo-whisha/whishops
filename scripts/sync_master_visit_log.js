@@ -1,5 +1,7 @@
 import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
 
+// Not finished, future
+
 export const run = async (req, res) => {
 	try {
 		await syncMasterVisitLog();

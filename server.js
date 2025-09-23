@@ -2,6 +2,7 @@ import express from "express";
 import "dotenv/config";
 import * as bq_sync_optimo_notes from "./scripts/bq_sync_optimo_notes.js";
 import * as sync_norcal_direct_order_log from "./scripts/sync_norcal_direct_order_log.js";
+import * as sync_eoq_rtg_crossdock_schedule from "./scripts/sync_eoq_rtg_crossdock_schedule.js";
 import * as sync_routing_kpi_data from "./scripts/sync_routing_kpi_data.js";
 import * as upload_routes_to_optimo from "./scripts/upload_routes_to_optimo.js";
 import * as bq_sync_master_store_list from "./scripts/bq_sync_master_store_list.js";
@@ -28,6 +29,10 @@ app.get("/upload_routes_to_optimo", (req, res) => {
 
 app.get("/sync_norcal_direct_order_log", (req, res) => {
 	sync_norcal_direct_order_log.run(req, res);
+});
+
+app.get("/sync_eoq_rtg_crossdock_schedule", (req, res) => {
+	sync_eoq_rtg_crossdock_schedule.run(req, res);
 });
 
 app.get("/sync_routing_kpi_data", (req, res) => {

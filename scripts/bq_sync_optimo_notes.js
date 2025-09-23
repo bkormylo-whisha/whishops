@@ -98,8 +98,8 @@ async function syncOptimoNotes() {
 		}
 	}
 
-	const resultWithHeaders = [headers, ...result];
-	await uploadToSheet(resultWithHeaders);
+	// const resultWithHeaders = [headers, ...result];
+	// await uploadToSheet(resultWithHeaders);
 	await uploadToBigQuery(result);
 	console.log("Script run complete");
 }
@@ -167,6 +167,7 @@ async function uploadToBigQuery(data) {
 		"stop_type",
 		"inv_number",
 		"rep_name",
+		"order_id",
 	];
 
 	const batchSize = 5000;
@@ -192,57 +193,57 @@ async function uploadToBigQuery(data) {
 	}
 }
 
-async function getAuthenticatedClient() {
-	const base64String = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
-	const jsonString = Buffer.from(base64String, "base64").toString("utf-8");
-	const credentials = JSON.parse(jsonString);
+// async function getAuthenticatedClient() {
+// 	const base64String = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+// 	const jsonString = Buffer.from(base64String, "base64").toString("utf-8");
+// 	const credentials = JSON.parse(jsonString);
 
-	const auth = new GoogleAuth({
-		credentials: {
-			client_email: credentials.client_email,
-			private_key: credentials.private_key,
-		},
-		scopes: ["https://www.googleapis.com/auth/spreadsheets"], // And other scopes
-	});
+// 	const auth = new GoogleAuth({
+// 		credentials: {
+// 			client_email: credentials.client_email,
+// 			private_key: credentials.private_key,
+// 		},
+// 		scopes: ["https://www.googleapis.com/auth/spreadsheets"], // And other scopes
+// 	});
 
-	return await auth.getClient();
-}
+// 	return await auth.getClient();
+// }
 
-async function uploadToSheet(resultWithHeaders) {
-	const outSheetID = SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id;
-	const outSheetName =
-		SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.optimoroute_pod_import;
-	const outSheetRange = "A1:AN";
+// async function uploadToSheet(resultWithHeaders) {
+// 	const outSheetID = SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id;
+// 	const outSheetName =
+// 		SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.optimoroute_pod_import;
+// 	const outSheetRange = "A1:AN";
 
-	const auth = await getAuthenticatedClient();
-	const sheets = google.sheets({ version: "v4", auth });
+// 	const auth = await getAuthenticatedClient();
+// 	const sheets = google.sheets({ version: "v4", auth });
 
-	try {
-		const clear = await sheets.spreadsheets.values.clear({
-			spreadsheetId: outSheetID,
-			range: `${outSheetName}!${outSheetRange}`,
-		});
-		console.log(`Cleared ${clear.data.clearedRange}`);
+// 	try {
+// 		const clear = await sheets.spreadsheets.values.clear({
+// 			spreadsheetId: outSheetID,
+// 			range: `${outSheetName}!${outSheetRange}`,
+// 		});
+// 		console.log(`Cleared ${clear.data.clearedRange}`);
 
-		const outRequest = {
-			spreadsheetId: outSheetID,
-			resource: {
-				valueInputOption: "USER_ENTERED",
-				data: [
-					{
-						range: `${outSheetName}!${outSheetRange}`,
-						majorDimension: "ROWS",
-						values: resultWithHeaders,
-					},
-				],
-			},
-		};
-		const response = await sheets.spreadsheets.values.batchUpdate(outRequest);
-		console.log(`Updated cells: ${response.data.totalUpdatedCells}`);
-	} catch (e) {
-		console.error("Error uploading to Google Sheet:", e);
-	}
-}
+// 		const outRequest = {
+// 			spreadsheetId: outSheetID,
+// 			resource: {
+// 				valueInputOption: "USER_ENTERED",
+// 				data: [
+// 					{
+// 						range: `${outSheetName}!${outSheetRange}`,
+// 						majorDimension: "ROWS",
+// 						values: resultWithHeaders,
+// 					},
+// 				],
+// 			},
+// 		};
+// 		const response = await sheets.spreadsheets.values.batchUpdate(outRequest);
+// 		console.log(`Updated cells: ${response.data.totalUpdatedCells}`);
+// 	} catch (e) {
+// 		console.error("Error uploading to Google Sheet:", e);
+// 	}
+// }
 
 async function fetchAllOrders(apiKey) {
 	let dateObj = getCurrentAndTrailingDates();
@@ -352,15 +353,17 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 		let driverName = `${order.scheduleInformation?.driverName ?? " "}`.split(
 			" ",
 		);
-		let repId = order.scheduleInformation?.driverName
-			? `${driverName[0]}_${driverName[1].charAt(0)}`
-			: "";
+		// let repId = order.scheduleInformation?.driverName
+		// 	? `${driverName[0]}_${driverName[1].charAt(0)}`
+		// 	: "";
+		let repId = `${order.data.assignedTo?.serial ?? " "}`;
 		let stopType = order.data.location.locationName.split(":")[0];
 		let invNumber = "";
 		if (order.data.customField5 !== "") {
 			invNumber = `${order.data.customField5}`;
 		}
 		let locationName = order.data.location.locationName.split(":")[1];
+		let orderID = `${order.id}`;
 
 		return [
 			accountName,
@@ -403,6 +406,7 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 			stopType,
 			invNumber,
 			repId,
+			orderID,
 		];
 	});
 }
