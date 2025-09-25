@@ -17,13 +17,13 @@ async function runWholeFoodsUpload() {
 	const updatedOrderData = await getFullOrderDataCin7();
 	const formattedData = await formatCin7Data(updatedOrderData);
 	const filePath = writeCsvData(formattedData);
-	uploadToFtp(filePath);
+	// uploadToFtp(filePath);
 }
 
 async function getFullOrderDataCin7() {
 	const url = "https://api.cin7.com/api/";
-	const username = "Whisha2US";
-	const password = "8e21e00dc8954506aed09df629041d87";
+	const username = process.env.CIN7_USERNAME;
+	const password = process.env.CIN7_PASSWORD;
 
 	let options = {};
 	options.headers = {
@@ -200,7 +200,7 @@ function writeCsvData(jsonData) {
 }
 
 async function uploadToFtp(filePath) {
-	const client = new ftp.Client();
+	const client = new Client();
 	client.ftp.verbose = true;
 
 	try {
