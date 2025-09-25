@@ -57,7 +57,7 @@ async function syncOptimoVisitDuration() {
 	console.log(`MWTX Orders: ${regionalOrderHistory.mwtx.length}`);
 	console.log(`NEFL Orders: ${regionalOrderHistory.nefl.length}`);
 
-	var result = [];
+	var allOrdersWithDurations = [];
 	for (const region of apiKeys) {
 		var regionalOrders;
 		switch (region.accountName) {
@@ -86,15 +86,15 @@ async function syncOptimoVisitDuration() {
 				regionalOrders.orders,
 				orderCompletionDetails,
 			);
-			result.push(...dataToUpload);
+			allOrdersWithDurations.push(...dataToUpload);
 		} else {
 			console.log(`No orders found for region ${region.accountName}`);
 		}
 	}
 
-	console.log(result.slice(0, 10));
+	console.log(allOrdersWithDurations.slice(0, 10));
 
-	const durationMap = buildDurationMap(result);
+	const durationMap = buildDurationMap(allOrdersWithDurations);
 
 	console.log(durationMap.get("NG002-01"));
 
@@ -103,6 +103,21 @@ async function syncOptimoVisitDuration() {
 }
 
 function buildDurationMap(stopDurations) {
+	const stopTypes = [
+		"SPRINT",
+		"DIRECT",
+		"DIRECT/DROP",
+		"DIRECT/SPRINT",
+		"FULL/SPRINT",
+		"SUPPLY",
+		"TRAINING",
+		"QC",
+		"COUNT",
+		"MERCH",
+		"CROSSDOCK",
+		"CROSSDOCK35",
+		"CROSSDOCK60",
+	];
 	const durationMap = new Map();
 	for (const duration of stopDurations) {
 		const prevArr = durationMap.get(duration[0]) ?? [];

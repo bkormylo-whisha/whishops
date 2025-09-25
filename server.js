@@ -8,6 +8,8 @@ import * as sync_routing_kpi_data from "./scripts/sync_routing_kpi_data.js";
 import * as upload_routes_to_optimo from "./scripts/upload_routes_to_optimo.js";
 import * as bq_sync_master_store_list from "./scripts/bq_sync_master_store_list.js";
 import * as bq_sync_optimo_visit_duration from "./scripts/bq_sync_optimo_visit_duration.js";
+import * as cin7_status_update from "./scripts/cin7_status_update.js";
+import * as run_whole_foods_upload from "./sps/whole_foods.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -42,6 +44,14 @@ app.get("/sync_eoq_rtg_weekly_coverage", (req, res) => {
 
 app.get("/sync_routing_kpi_data", (req, res) => {
 	sync_routing_kpi_data.run(req, res);
+});
+
+app.get("/cin7_status_update", (req, res) => {
+	cin7_status_update.run(req, res);
+});
+
+app.get("/run_whole_foods_upload", (req, res) => {
+	run_whole_foods_upload.run(req, res);
 });
 
 app.listen(PORT, () => {

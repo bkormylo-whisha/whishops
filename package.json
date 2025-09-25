@@ -19,8 +19,11 @@
 	"homepage": "https://github.com/bkormylo-whisha/whishops#readme",
 	"dependencies": {
 		"@google-cloud/bigquery": "^8.1.1",
+		"basic-ftp": "^5.0.5",
+		"dayjs": "^1.11.18",
 		"dotenv": "^17.2.2",
 		"express": "^5.1.0",
+		"fs": "^0.0.1-security",
 		"google-auth-library": "^10.3.0",
 		"googleapis": "^160.0.0"
 	}
