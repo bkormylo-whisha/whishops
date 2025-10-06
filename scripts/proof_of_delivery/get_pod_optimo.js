@@ -167,7 +167,7 @@ async function uploadToSheet(resultWithHeaders) {
 		outSheetID: SHEET_SCHEMAS.POD_IMPORT.prod_id,
 		outSheetName: SHEET_SCHEMAS.POD_IMPORT.pages.pod,
 		outSheetRange: "A1:I90000",
-		wipePrevousData: true,
+		wipePreviousData: true,
 		insertTimestamp: true,
 		timestampCol: 8,
 	});
@@ -375,22 +375,22 @@ function getCurrentAndTrailingDates() {
 		.month(now.month())
 		.subtract(1, "day")
 		.format(format);
-	const startOf2ndTrailingMonth = dayjs()
-		.month(now.month() - 2)
-		.date(1)
-		.format(format);
-	const endOf2ndTrailingMonth = dayjs()
-		.month(now.month() - 1)
-		.subtract(1, "day")
-		.format(format);
-	const startOf3rdTrailingMonth = dayjs()
-		.month(now.month() - 3)
-		.date(1)
-		.format(format);
-	const endOf3rdTrailingMonth = dayjs()
-		.month(now.month() - 2)
-		.subtract(1, "day")
-		.format(format);
+	// const startOf2ndTrailingMonth = dayjs()
+	// 	.month(now.month() - 2)
+	// 	.date(1)
+	// 	.format(format);
+	// const endOf2ndTrailingMonth = dayjs()
+	// 	.month(now.month() - 1)
+	// 	.subtract(1, "day")
+	// 	.format(format);
+	// const startOf3rdTrailingMonth = dayjs()
+	// 	.month(now.month() - 3)
+	// 	.date(1)
+	// 	.format(format);
+	// const endOf3rdTrailingMonth = dayjs()
+	// 	.month(now.month() - 2)
+	// 	.subtract(1, "day")
+	// 	.format(format);
 
 	const monthsToFetch = [
 		// {
