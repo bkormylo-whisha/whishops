@@ -1,0 +1,141 @@
+[
+	{
+		"name": "order_date",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "stop_id",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "invoice_number",
+		"type": "STRING",
+		"mode": "REQUIRED"
+	},
+	{
+		"name": "business_name",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "address",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "city",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "default_region",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "order_notes_comments",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "order_value",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "invoice_number_2",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+
+	{
+		"name": "direct_duration",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "cin7_order_id",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "invoice_week",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "scheduled_week",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "backorder",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "duplicate",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+
+	{
+		"name": "rsr",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+
+	{
+		"name": "created_by",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "helper",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "invoice_link",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+
+	{
+		"name": "log_check",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "dispatch_date",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "invoice_date",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "scheduled_invoice_date",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "cin7_status",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "delivered_or_complete_manual",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	},
+	{
+		"name": "delivered_or_complete_formula",
+		"type": "STRING",
+		"mode": "NULLABLE"
+	}
+]

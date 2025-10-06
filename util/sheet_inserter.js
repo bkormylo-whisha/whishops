@@ -1,16 +1,12 @@
 import { google } from "googleapis";
 import getAuthenticatedClient from "./google_auth.js";
 
-export function sheetCoordinator(params) {
-	async function run() {
+export function sheetInserter(params) {
+	async function run(dataToInsert) {
 		const auth = await getAuthenticatedClient();
 		const sheets = google.sheets({ version: "v4", auth });
 
 		console.log(`Running script: ${params.functionName}`);
-
-		const inSheetID = params.inSheetID;
-		const inSheetName = params.inSheetName;
-		const inSheetRange = params.inSheetRange;
 
 		const outSheetID = params.outSheetID;
 		const outSheetName = params.outSheetName;
@@ -22,22 +18,7 @@ export function sheetCoordinator(params) {
 
 		const wipePreviousData = params.wipePreviousData ?? false;
 
-		console.log("Getting initial data from input sheet");
-
 		try {
-			const getResponse = await sheets.spreadsheets.values.get({
-				spreadsheetId: inSheetID,
-				range: `${inSheetName}!${inSheetRange}`,
-				valueRenderOption: "UNFORMATTED_VALUE",
-			});
-
-			let inSheetData = getResponse.data.values;
-			if (!inSheetData) {
-				inSheetData = [[]];
-			}
-
-			console.log("Retrieved data successfully");
-
 			if (insertTimestamp) {
 				const today = new Date();
 				if (!inSheetData[timestampRow]) {
@@ -63,7 +44,7 @@ export function sheetCoordinator(params) {
 						{
 							range: `${outSheetName}!${outSheetRange}`,
 							majorDimension: "ROWS",
-							values: inSheetData,
+							values: dataToInsert,
 						},
 					],
 				},

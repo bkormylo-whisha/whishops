@@ -8,8 +8,13 @@ import * as sync_routing_kpi_data from "./scripts/sync_routing_kpi_data.js";
 import * as upload_routes_to_optimo from "./scripts/upload_routes_to_optimo.js";
 import * as bq_sync_master_store_list from "./scripts/bq_sync_master_store_list.js";
 import * as bq_sync_optimo_visit_duration from "./scripts/bq_sync_optimo_visit_duration.js";
-import * as cin7_status_update from "./scripts/cin7_status_update.js";
-import * as run_whole_foods_upload from "./sps/whole_foods.js";
+import * as cin7_status_update from "./scripts/print_log/cin7_status_update.js";
+import * as cin7_get_printed_orders from "./scripts/print_log/cin7_get_printed_orders.js";
+import * as run_whole_foods_upload from "./sps/run_whole_foods_upload.js";
+import * as backup_and_clear_dol from "./scripts/backup_and_clear_dol.js";
+import * as backup_dol from "./scripts/backup_dol.js";
+import * as stocktake_sync from "./scripts/stocktake_sync.js";
+import * as get_pod_optimo from "./scripts/proof_of_delivery/get_pod_optimo.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -50,8 +55,28 @@ app.get("/cin7_status_update", (req, res) => {
 	cin7_status_update.run(req, res);
 });
 
+app.get("/cin7_get_printed_orders", (req, res) => {
+	cin7_get_printed_orders.run(req, res);
+});
+
 app.get("/run_whole_foods_upload", (req, res) => {
 	run_whole_foods_upload.run(req, res);
+});
+
+app.get("/backup_and_clear_dol", (req, res) => {
+	backup_and_clear_dol.run(req, res);
+});
+
+app.get("/backup_dol", (req, res) => {
+	backup_dol.run(req, res);
+});
+
+app.get("/stocktake_sync", (req, res) => {
+	stocktake_sync.run(req, res);
+});
+
+app.get("/get_pod_optimo", (req, res) => {
+	get_pod_optimo.run(req, res);
 });
 
 app.listen(PORT, () => {

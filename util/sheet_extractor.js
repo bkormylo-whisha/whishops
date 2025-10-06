@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import getAuthenticatedClient from "./sheet_auth.js";
+import getAuthenticatedClient from "./google_auth.js";
 
 export function sheetExtractor(params) {
 	async function run() {

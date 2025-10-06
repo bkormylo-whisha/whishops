@@ -1,7 +1,7 @@
 import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
 import { BigQuery } from "@google-cloud/bigquery";
 import { google } from "googleapis";
-import getAuthenticatedClient from "../util/sheet_auth.js";
+import getAuthenticatedClient from "../util/google_auth.js";
 import convertSheetDataToJson from "../util/convert_sheet_data_to_json.js";
 
 export const run = async (req, res) => {

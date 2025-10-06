@@ -10,7 +10,10 @@ export default async function getAuthenticatedClient() {
 			client_email: credentials.client_email,
 			private_key: credentials.private_key,
 		},
-		scopes: ["https://www.googleapis.com/auth/spreadsheets"], // And other scopes
+		scopes: [
+			"https://www.googleapis.com/auth/spreadsheets",
+			"https://www.googleapis.com/auth/drive",
+		],
 	});
 
 	return await auth.getClient();

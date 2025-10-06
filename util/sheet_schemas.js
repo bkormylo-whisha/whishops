@@ -140,7 +140,7 @@ export const SHEET_SCHEMAS = {
 	},
 
 	WHISHACCEL_DAILY_COVERAGE: {
-		id: "1SDHPnU3pp4EiD66CSqPf7FhsEqC3gsBcMODQl0IUJjE",
+		id: "1AV83qqxsEpDsGMxFwrjyYVp7lGZeG1rVbUPWBfE0WP4",
 		sand2: "1nJfonP5Z1s_r0a1NOXFEoqm9c_5o4k-LIA0HWKHWDJM",
 		prod_id: "1EG4fUlfd1-wOXjLcoUywuI83sKZiUpTTWpW0zaZK2Sc",
 		pages: {
@@ -239,6 +239,28 @@ export const SHEET_SCHEMAS = {
 		pages: {
 			optimoroute_pod_import: "Optimoroute POD Import",
 			master_visit_log: "MASTER: Visit Log",
+		},
+	},
+
+	WHISHACCEL_SACRAMENTO_DISPATCH: {
+		prod_id: "1s5tmxe9uv7zPl6DCvqhaLImUlG6s4Sxz4zThMLGRQqE",
+		pages: {
+			whs_supplies: "WHS: Supplies",
+			whs_print_log: "WHS: PRINT LOG",
+			whs_dispatch_log: "WHS: DISPATCH LOG",
+			whs_loading_dash: "WHS: LOADING DASH",
+			rtg_weekly_coverage: "RTG: Weekly Coverage",
+			rtg_direct_order_log: "RTG: Direct Order Log",
+			rtg_submit_directs: "RTG: Submit Directs",
+			dispatch_history: "Dispatch History",
+			lookup: "LOOKUP",
+		},
+	},
+
+	POD_IMPORT: {
+		prod_id: "17oEgQ3qbtqyROlTPKpIB5Wm0okoUhViCzxMda3lMhpw",
+		pages: {
+			pod: "POD",
 		},
 	},
 };
