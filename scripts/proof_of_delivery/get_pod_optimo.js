@@ -168,6 +168,8 @@ async function uploadToSheet(resultWithHeaders) {
 		outSheetName: SHEET_SCHEMAS.POD_IMPORT.pages.pod,
 		outSheetRange: "A1",
 		wipePrevousData: true,
+		insertTimestamp: true,
+		timestampCol: 8,
 	});
 
 	await podSheetInserter.run(resultWithHeaders);

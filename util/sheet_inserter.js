@@ -18,6 +18,8 @@ export function sheetInserter(params) {
 
 		const wipePreviousData = params.wipePreviousData ?? false;
 
+		const inSheetData = dataToInsert;
+
 		try {
 			if (insertTimestamp) {
 				const today = new Date();
