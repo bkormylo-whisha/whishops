@@ -17,7 +17,7 @@ export const run = async (req, res) => {
 async function runWholeFoodsUpload() {
 	const date = dayjs();
 	const formattedDate = date.subtract(7, "day").format("YYYY-MM-DD");
-	const fileName = `whisha${formattedDate}_invoices.csv`;
+	const fileName = `in_whisha_wfm_${formattedDate}.csv`;
 
 	const updatedOrderData = await getFullOrderDataCin7(formattedDate);
 	const formattedData = await formatCin7Data(updatedOrderData, formattedDate);
@@ -25,10 +25,7 @@ async function runWholeFoodsUpload() {
 	// uploadToFtp(filePath);
 
 	const mailer = mailSender({
-		recipients: [
-			"bkormylo@whisha.com",
-			// "wsinks@whisha.com"
-		],
+		recipients: ["bkormylo@whisha.com", "wsinks@whisha.com"],
 		attachmentName: fileName,
 		attachmentPath: filePath,
 		subject: "Whole Foods Upload",
@@ -95,24 +92,29 @@ async function formatCin7Data(data) {
 				(total, item) => total + item.qty,
 				0,
 			);
+			const barcode = `${lineItem.barcode ?? ""}`;
+			if (barcode.length <= 11) {
+				console.log(`Skipped: ${salesOrder}`);
+				continue;
+			}
 
 			const rowJSON = {
 				"Order Id": salesOrder.id ?? "",
-				"Order Ref": salesOrder.reference ?? "",
+				"Order Ref": `"${salesOrder.reference ?? ""}"`,
 				"Invoice No": salesOrder.invoiceNumber ?? "",
 				"Customer PO No": salesOrder.customerPoNo ?? 0, // NOT A FIELD
-				Company: company,
-				"First Name": salesOrder.firstName ?? "",
-				"Last Name": salesOrder.lastName ?? "",
+				Company: `"${company}"`,
+				"First Name": `"${salesOrder.firstName ?? ""}"`,
+				"Last Name": `"${salesOrder.lastName ?? ""}"`,
 				"Created Date": dayjs(salesOrder.createdDate).format(dateFormat) ?? "",
 				Phone: salesOrder.phone ?? "",
 				Mobile: salesOrder.mobile ?? "",
 				Fax: salesOrder.fax ?? "",
-				Email: salesOrder.email ?? "",
-				"Delivery Company": salesOrder.deliveryCompany ?? "",
+				Email: `"${salesOrder.email ?? ""}"`,
+				"Delivery Company": `"${salesOrder.deliveryCompany ?? ""}"`,
 				"Delivery First Name": salesOrder.deliveryFirstName ?? "",
 				"Delivery Last Name": salesOrder.deliveryLastName ?? "",
-				"Delivery Address 1": salesOrder.deliveryAddress1 ?? "",
+				"Delivery Address 1": `"${salesOrder.deliveryAddress1 ?? ""}"`,
 				"Delivery Address 2": deliveryAddress2,
 				"Delivery City": salesOrder.deliveryCity ?? "",
 				"Delivery State": salesOrder.deliveryState ?? "",
@@ -121,7 +123,7 @@ async function formatCin7Data(data) {
 				"Billing Company": salesOrder.billingCompany ?? "",
 				"Billing First Name": salesOrder.billingFirstName ?? "",
 				"Billing Last Name": salesOrder.billingLastName ?? "",
-				"Billing Address 1": salesOrder.billingAddress1 ?? "",
+				"Billing Address 1": `"${salesOrder.billingAddress1 ?? ""}"`,
 				"Billing Address 2": salesOrder.billingAddress2 ?? "",
 				"Billing City": salesOrder.billingCity ?? "",
 				"Billing State": salesOrder.billingState ?? "",
@@ -132,9 +134,9 @@ async function formatCin7Data(data) {
 				"Processed By": salesOrder.processedBy ?? "",
 				Branch: "",
 				"Branch ID": salesOrder.branchId ?? "",
-				"Internal Comments": `"${salesOrder.internalComments}"` ?? "",
-				"Delivery Instructions": `"${salesOrder.deliveryInstructions}"` ?? "",
-				"Tracking Code": salesOrder.trackingCode ?? "",
+				"Internal Comments": `"${salesOrder.internalComments ?? ""}"`,
+				"Delivery Instructions": `"${salesOrder.deliveryInstructions ?? ""}"`,
+				"Tracking Code": `"${salesOrder.trackingCode ?? ""}"`,
 				"Project Name": salesOrder.projectName ?? "",
 				Channel: "", // Not a field
 				"Payment Type": "", // Not a field
@@ -153,13 +155,13 @@ async function formatCin7Data(data) {
 				"Total Items": totalItems,
 				"Product Total (Local Currency)": salesOrder.total ?? "",
 				"Product Total": salesOrder.total ?? "",
-				"Freight Description": `"${salesOrder.freightDescription}"` ?? "",
+				"Freight Description": `"${salesOrder.freightDescription ?? ""}"`,
 				"Freight Cost (Local Currency)": salesOrder.freightTotal ?? "",
 				"Freight Cost": salesOrder.freightTotal ?? "",
-				"Surcharge Description": `"${salesOrder.surchargeDescription}"` ?? "",
+				"Surcharge Description": `"${salesOrder.surchargeDescription ?? ""}"`,
 				"Surcharge Total (Local Currency)": salesOrder.surcharge ?? "",
 				"Surcharge Total": salesOrder.surcharge ?? "",
-				"Discount Description": `"${salesOrder.discountDescription}"` ?? "",
+				"Discount Description": `"${salesOrder.discountDescription ?? ""}"`,
 				"Discount Total (Local Currency)": salesOrder.discountTotal ?? "",
 				"Discount Total": salesOrder.discountTotal ?? "",
 				"Total Excl (Local Currency)": salesOrder.total ?? "",
@@ -167,7 +169,7 @@ async function formatCin7Data(data) {
 				"Total Incl (Local Currency)": salesOrder.total ?? "",
 				"Total Incl": salesOrder.total ?? "",
 				"Item Code": lineItem.code ?? "",
-				"Item Name": `${lineItem.name}` ?? "",
+				"Item Name": `"${lineItem.name}"` ?? "",
 				"Item Qty": lineItem.qty ?? "",
 				"Item Qty Moved": salesOrder.itemQtyMoved ?? "",
 				"Item Price (Local Currency)": lineItem.unitPrice ?? "",
@@ -177,7 +179,7 @@ async function formatCin7Data(data) {
 				"Item Option 1": lineItem.option1 ?? "",
 				"Item Option 2": lineItem.option2 ?? "",
 				"Item Option 3": lineItem.option3 ?? "",
-				"Item Notes": `"${lineItem.lineComments}"` ?? "",
+				"Item Notes": `"${lineItem.lineComments ?? ""}"`,
 				"Item Row Format": "",
 				"Item BOM Load": "",
 				"Item Sort": i,
@@ -187,7 +189,7 @@ async function formatCin7Data(data) {
 					dayjs(salesOrder.dispatchedDate).format(dateFormat) ?? "",
 				ETD: dayjs(salesOrder.invoiceDate).format(dateFormat) ?? "",
 				"Cancellation Date": "",
-				Barcode: lineItem.barcode ?? "",
+				Barcode: barcode,
 			};
 
 			formattedData.push(rowJSON);
@@ -199,7 +201,7 @@ async function formatCin7Data(data) {
 
 function writeCsvData(jsonData, formattedDate) {
 	const csvData = convertJsonToCsv(jsonData);
-	const fileName = `whisha${formattedDate}_invoices.csv`;
+	const fileName = `in_whisha_wfm_${formattedDate}.csv`;
 
 	fs.writeFile("./downloads/" + fileName, csvData, (err) => {
 		if (err) {

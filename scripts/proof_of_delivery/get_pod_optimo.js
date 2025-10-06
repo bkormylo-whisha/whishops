@@ -4,9 +4,10 @@ import { BigQuery } from "@google-cloud/bigquery";
 import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { logRuntimeFor } from "../../util/log_runtime_for.js";
 import { sheetInserter } from "../../util/sheet_inserter.js";
+import dayjs from "dayjs";
 
 export const run = async (req, res) => {
-	console.log("Running Sync Optimo Notes");
+	console.log("Running Optimo POD Extraction");
 	try {
 		await logRuntimeFor(getPODOptimo);
 		res.status(200).json({ status: "success" });
@@ -37,8 +38,13 @@ async function getPODOptimo() {
 	];
 
 	var headers = [
-		"Order ID",
+		"Order Date",
+		"Region",
+		// "Optimoroute ID",
+		"Stop ID",
 		"Invoice No",
+		"Target PO Number Direct",
+		// "Target PO Number From Order",
 		"Whisha POD",
 		"Customer POD",
 		"Shelf Photo",
@@ -46,10 +52,10 @@ async function getPODOptimo() {
 
 	var result = [];
 	for (const region of apiKeys) {
-		var orders = await fetchAllOrders(region.key);
+		var orders = await fetchAllOrders(region);
 		if (orders && orders.length > 0) {
 			let orderCompletionDetails = await fetchOrderDetails(
-				region.key,
+				region,
 				orders.map((order) => order.id),
 			);
 			let mergedData = await mergeOrderData(orders, orderCompletionDetails);
@@ -155,37 +161,22 @@ async function getPODOptimo() {
 // 	}
 // }
 
-// async function getAuthenticatedClient() {
-// 	const base64String = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
-// 	const jsonString = Buffer.from(base64String, "base64").toString("utf-8");
-// 	const credentials = JSON.parse(jsonString);
-
-// 	const auth = new GoogleAuth({
-// 		credentials: {
-// 			client_email: credentials.client_email,
-// 			private_key: credentials.private_key,
-// 		},
-// 		scopes: ["https://www.googleapis.com/auth/spreadsheets"], // And other scopes
-// 	});
-
-// 	return await auth.getClient();
-// }
-
 async function uploadToSheet(resultWithHeaders) {
 	const podSheetInserter = sheetInserter({
 		functionName: "Insert POD Optimo",
 		outSheetID: SHEET_SCHEMAS.POD_IMPORT.prod_id,
 		outSheetName: SHEET_SCHEMAS.POD_IMPORT.pages.pod,
 		outSheetRange: "A1",
+		wipePrevousData: true,
 	});
 
 	await podSheetInserter.run(resultWithHeaders);
 }
 
-async function fetchAllOrders(apiKey) {
+async function fetchAllOrders(region) {
 	let dateObj = getCurrentAndTrailingDates();
 	var searchOrdersUrl = "https://api.optimoroute.com/v1/search_orders";
-	var ordersUrl = `${searchOrdersUrl}?key=${apiKey}`;
+	var ordersUrl = `${searchOrdersUrl}?key=${region.key}`;
 	let allOrders = [];
 	let after_tag = null;
 
@@ -198,14 +189,14 @@ async function fetchAllOrders(apiKey) {
 				},
 				includeOrderData: true,
 				includeScheduleInformation: true,
-				orderStatus: [
-					// "scheduled",
-					// "on_route",
-					// "servicing",
-					"success",
-					// "failed",
-					// "rejected",
-				],
+				// orderStatus: [
+				// 	// "scheduled",
+				// 	// "on_route",
+				// 	// "servicing",
+				// 	// "success",
+				// 	// "failed",
+				// 	// "rejected",
+				// ],
 			};
 
 			if (after_tag) {
@@ -239,13 +230,20 @@ async function fetchAllOrders(apiKey) {
 		} while (after_tag);
 	}
 
-	return allOrders;
+	const ordersTaggedWithRegion = allOrders.map((row) => {
+		return {
+			...row,
+			region: region.accountName,
+		};
+	});
+
+	return ordersTaggedWithRegion;
 }
 
-async function fetchOrderDetails(apiKey, orderIds) {
+async function fetchOrderDetails(region, orderIds) {
 	var completionDetailsUrl =
 		"https://api.optimoroute.com/v1/get_completion_details";
-	var detailsUrl = `${completionDetailsUrl}?key=${apiKey}`;
+	var detailsUrl = `${completionDetailsUrl}?key=${region.key}`;
 	var allDetails = [];
 
 	for (let i = 0; i < orderIds.length; i += 500) {
@@ -290,18 +288,26 @@ async function mergeOrderData(orders, orderCompletionDetails) {
 	let result = [];
 
 	for (const order of orders) {
-		const orderID = order.id;
-		const orderDetails = detailsMap.get(orderID);
+		const optimorouteID = order.id;
+		const orderDetails = detailsMap.get(optimorouteID);
 		if (!orderDetails) {
 			console.log("No details found");
 		}
+		const orderDate = order.data?.date ?? "";
+		const region = order.region;
+		const stopID = order.data?.orderNo ?? "";
 		const form = orderDetails.data?.form ?? "";
 		let cin7InvoiceNo;
 		let whishaInvoiceUrls;
 		let customerInvoiceUrls;
 		let shelfPhotoUrls;
+		let targetPoNumberDirect;
+		// console.log(order);
+		// console.log(form);
+
 		if (form && typeof form === "object") {
-			cin7InvoiceNo = form.full_service_invoice_number;
+			cin7InvoiceNo = form.full_service_invoice_no;
+			targetPoNumberDirect = form.target_po_number_direct;
 			whishaInvoiceUrls =
 				form.whisha_invoice_documentation_full_service
 					?.map((imageObj) => imageObj.url)
@@ -314,16 +320,37 @@ async function mergeOrderData(orders, orderCompletionDetails) {
 				form.photos_of_shelf_displays
 					?.map((imageObj) => imageObj.url)
 					.join(", ") ?? "";
+
+			if (whishaInvoiceUrls.length === 0) {
+				whishaInvoiceUrls =
+					form.whisha_invoice_documentation
+						?.map((imageObj) => imageObj.url)
+						.join(", ") ?? "";
+			}
+
+			if (customerInvoiceUrls.length === 0) {
+				customerInvoiceUrls =
+					form.customer_invoice_documentation
+						?.map((imageObj) => imageObj.url)
+						.join(", ") ?? "";
+			}
 		}
 
 		let invNumber = "";
 		if (order.data.customField5 !== "") {
 			invNumber = `${order.data.customField5}`;
+		} else {
+			invNumber = cin7InvoiceNo;
 		}
 
 		result.push([
-			orderID,
-			cin7InvoiceNo,
+			orderDate,
+			region,
+			// optimorouteID,
+			stopID,
+			invNumber,
+			targetPoNumberDirect,
+			// targetPoFromOtherField,
 			whishaInvoiceUrls,
 			customerInvoiceUrls,
 			shelfPhotoUrls,
@@ -333,42 +360,52 @@ async function mergeOrderData(orders, orderCompletionDetails) {
 	return result;
 }
 
-function formatDateToYYYYMMDD(date) {
-	return date.toISOString().split("T")[0];
-}
-
 function getCurrentAndTrailingDates() {
-	const now = new Date();
-	const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-	const startOfTrailingMonth = new Date(
-		now.getFullYear(),
-		now.getMonth() - 1,
-		1,
-	);
-	const endOfTrailingMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-	const startOf2ndTrailingMonth = new Date(
-		now.getFullYear(),
-		now.getMonth() - 2,
-		1,
-	);
-	const endOf2ndTrailingMonth = new Date(
-		now.getFullYear(),
-		now.getMonth() - 1,
-		0,
-	);
+	const format = "YYYY-MM-DD";
+	const now = dayjs();
+	const formattedNow = now.format(format);
+	const startOfCurrentMonth = dayjs().month(now.month()).date(1).format(format);
+	const startOfTrailingMonth = dayjs()
+		.month(now.month() - 1)
+		.date(1)
+		.format(format);
+	const endOfTrailingMonth = dayjs()
+		.month(now.month())
+		.subtract(1, "day")
+		.format(format);
+	const startOf2ndTrailingMonth = dayjs()
+		.month(now.month() - 2)
+		.date(1)
+		.format(format);
+	const endOf2ndTrailingMonth = dayjs()
+		.month(now.month() - 1)
+		.subtract(1, "day")
+		.format(format);
+	const startOf3rdTrailingMonth = dayjs()
+		.month(now.month() - 3)
+		.date(1)
+		.format(format);
+	const endOf3rdTrailingMonth = dayjs()
+		.month(now.month() - 2)
+		.subtract(1, "day")
+		.format(format);
 
 	const monthsToFetch = [
 		// {
-		// 	start: formatDateToYYYYMMDD(startOf2ndTrailingMonth),
-		// 	end: formatDateToYYYYMMDD(endOf2ndTrailingMonth),
+		// 	start: startOf3rdTrailingMonth,
+		// 	end: endOf3rdTrailingMonth,
 		// },
 		// {
-		// 	start: formatDateToYYYYMMDD(startOfTrailingMonth),
-		// 	end: formatDateToYYYYMMDD(endOfTrailingMonth),
+		// 	start: startOf2ndTrailingMonth,
+		// 	end: endOf2ndTrailingMonth,
 		// },
 		{
-			start: formatDateToYYYYMMDD(startOfCurrentMonth),
-			end: formatDateToYYYYMMDD(now),
+			start: startOfTrailingMonth,
+			end: endOfTrailingMonth,
+		},
+		{
+			start: startOfCurrentMonth,
+			end: formattedNow,
 		},
 	];
 
