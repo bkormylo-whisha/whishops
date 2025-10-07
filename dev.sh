@@ -10,7 +10,7 @@ if [ $? != 0 ]; then
 	tmux send-keys -t $SESH:editor "cd ~/projects/whishops/" C-m
 	tmux send-keys -t $SESH:editor "vi ." C-m
 
-	tmux new-window -t $SESH -n "runner"
+	tmux new-window -t $SESH -n "server"
 	tmux send-keys -t $SESH:runner "cd ~/projects/whishops/" C-m
 	tmux send-keys -t $SESH:runner "npm start" C-m
 

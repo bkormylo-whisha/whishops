@@ -21,6 +21,8 @@
 		"@google-cloud/bigquery": "^8.1.1",
 		"basic-ftp": "^5.0.5",
 		"dayjs": "^1.11.18",
+		"dayjs-plugin-utc": "^0.1.2",
+		"dayjs-timezone-iana-plugin": "^0.2.0",
 		"dotenv": "^17.2.2",
 		"express": "^5.1.0",
 		"fs": "^0.0.1-security",

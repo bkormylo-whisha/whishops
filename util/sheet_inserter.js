@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import getAuthenticatedClient from "./google_auth.js";
+import dayjs from "dayjs";
 
 export function sheetInserter(params) {
 	async function run(dataToInsert) {
@@ -22,7 +23,7 @@ export function sheetInserter(params) {
 
 		try {
 			if (insertTimestamp) {
-				const today = new Date();
+				const today = dayjs().format("HH:mm MM/DD");
 				if (!inSheetData[timestampRow]) {
 					inSheetData[timestampRow] = [];
 				}

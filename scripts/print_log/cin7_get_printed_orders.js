@@ -30,7 +30,7 @@ async function cin7GetPrintedOrders() {
 	console.log(regionalData.MIDWEST.length);
 	// Orders will need to be matched against the MASTER STORE LIST
 	// Then use the region info to pick which sheet gets the order
-	// await sendPrintedOrdersToDispatchLog(formattedData);
+	await sendPrintedOrdersToDispatchLog(formattedData);
 }
 
 async function sendPrintedOrdersToDispatchLog(printedOrders) {
@@ -51,6 +51,7 @@ async function sendPrintedOrdersToDispatchLog(printedOrders) {
 		outSheetName:
 			SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.pages.whs_dispatch_log,
 		outSheetRange: "B11:H",
+		wipePreviousData: true,
 	});
 
 	const allOrders = [...prevOrders, ...printedOrders];
@@ -73,8 +74,8 @@ async function getPrintedOrdersCin7() {
 	let page = 1;
 	let result = [];
 	let hasMorePages = true;
-	// const stage = "Printed";
-	const stage = "New";
+	const stage = "Printed";
+	// const stage = "New";
 	const rowCount = 250;
 	while (hasMorePages) {
 		// There are old printed orders left in Cin7, invoiceDate filtering removes them
@@ -150,6 +151,7 @@ async function dividePrintedOrdersByRegion(formattedPrintedOrderJson) {
 		NORTHEAST: [],
 		SOUTHEAST: [],
 		FLORIDA: [],
+		SACRAMENTO: [],
 		UNKNOWN: [],
 	};
 

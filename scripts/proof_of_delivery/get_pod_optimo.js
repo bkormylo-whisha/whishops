@@ -1,5 +1,3 @@
-import { google } from "googleapis";
-import { GoogleAuth } from "google-auth-library";
 import { BigQuery } from "@google-cloud/bigquery";
 import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { logRuntimeFor } from "../../util/log_runtime_for.js";
@@ -40,14 +38,11 @@ async function getPODOptimo() {
 	var headers = [
 		"Order Date",
 		"Region",
-		// "Optimoroute ID",
 		"Stop ID",
 		"Invoice No",
 		"Target PO Number Direct",
-		// "Target PO Number From Order",
 		"Whisha POD",
 		"Customer POD",
-		"Shelf Photo",
 	];
 
 	var result = [];
@@ -72,94 +67,60 @@ async function getPODOptimo() {
 	console.log("Script run complete");
 }
 
-// async function uploadToBigQuery(data) {
-// 	const bigquery = new BigQuery();
-// 	const projectId = "whishops";
-// 	const datasetId = "order_management";
-// 	const tableId = "optimo-visit-log";
+async function uploadToBigQuery(data) {
+	const bigquery = new BigQuery();
+	const projectId = "whishops";
+	const datasetId = "finance";
+	const tableId = "pod_import";
 
-// 	const fullTableName = `${projectId}.${datasetId}.${tableId}`;
-// 	const query = `TRUNCATE TABLE \`${fullTableName}\``;
-// 	const options = {
-// 		query: query,
-// 		location: "us-west1",
-// 	};
+	const fullTableName = `${projectId}.${datasetId}.${tableId}`;
+	const query = `TRUNCATE TABLE \`${fullTableName}\``;
+	const options = {
+		query: query,
+		location: "us-west1",
+	};
 
-// 	try {
-// 		const [job] = await bigquery.createQueryJob(options);
-// 		console.log(`Table ${fullTableName} successfully truncated.`);
-// 		await job.getQueryResults();
-// 	} catch (e) {
-// 		console.error(`Error truncating table ${fullTableName}:`, e);
-// 		throw e;
-// 	}
+	// try {
+	// 	const [job] = await bigquery.createQueryJob(options);
+	// 	console.log(`Table ${fullTableName} successfully truncated.`);
+	// 	await job.getQueryResults();
+	// } catch (e) {
+	// 	console.error(`Error truncating table ${fullTableName}:`, e);
+	// 	throw e;
+	// }
 
-// 	var sqlheaders = [
-// 		"account_name",
-// 		"order_no",
-// 		"driver_name",
-// 		"date",
-// 		"location_name",
-// 		"custom_field_5",
-// 		"status",
-// 		"form_note",
-// 		"direct_order",
-// 		"delivered",
-// 		"direct_order_invoice_amount",
-// 		"dollar_amount_match_direct_order",
-// 		"amount_mismatch_details",
-// 		"unit_quantity_match_direct_order",
-// 		"unit_quantity_mismatch_details",
-// 		"full_service_invoice",
-// 		"full_service_invoice_number",
-// 		"full_service_invoice_amount",
-// 		"dollar_amount_match_full_service",
-// 		"amount_mismatch_details",
-// 		"unit_quantity_match_full_service",
-// 		"unit_quantity_mismatch_details",
-// 		"credit",
-// 		"credit_number",
-// 		"credit_amount",
-// 		"dollar_amount_match_credit",
-// 		"amount_mismatch_details",
-// 		"unit_quantity_match_credit",
-// 		"unit_quantity_mismatch_details",
-// 		"parked_order",
-// 		"parked_order_amount",
-// 		"out_of_stocks",
-// 		"target_po_number_direct_order",
-// 		"target_po_number_full_service",
-// 		"unique_id",
-// 		"status",
-// 		"pod_notes",
-// 		"stop_type",
-// 		"inv_number",
-// 		"rep_name",
-// 		"order_id",
-// 	];
+	var sqlheaders = [
+		"order_date",
+		"region",
+		"stop_id",
+		"invoice_number",
+		"target_po_number",
+		"whisha_pod",
+		"customer_pod",
+	];
 
-// 	const batchSize = 5000;
-// 	for (let i = 0; i < data.length; i += batchSize) {
-// 		const rawBatch = data.slice(i, i + batchSize);
+	const batchSize = 5000;
+	for (let i = 0; i < data.length; i += batchSize) {
+		const rawBatch = data.slice(i, i + batchSize);
 
-// 		const processedBatch = rawBatch.map((row) => {
-// 			const obj = {};
-// 			sqlheaders.forEach((header, j) => {
-// 				obj[header] = row[j];
-// 			});
-// 			return obj;
-// 		});
+		const processedBatch = rawBatch.map((row) => {
+			const obj = {};
+			sqlheaders.forEach((header, j) => {
+				obj[header] = row[j];
+			});
+			return obj;
+		});
 
-// 		try {
-// 			await bigquery.dataset(datasetId).table(tableId).insert(processedBatch);
-// 			console.log(
-// 				`Successfully inserted a batch of ${processedBatch.length} rows.`,
-// 			);
-// 		} catch (e) {
-// 			console.error(`Error inserting batch at index ${i}:`, e);
-// 		}
-// 	}
-// }
+		try {
+			await bigquery.dataset(datasetId).table(tableId).insert(processedBatch);
+			console.log(
+				`Successfully inserted a batch of ${processedBatch.length} rows.`,
+			);
+		} catch (e) {
+			console.error(`Error inserting batch at index ${i}:`, e);
+		}
+	}
+}
 
 async function uploadToSheet(resultWithHeaders) {
 	const podSheetInserter = sheetInserter({
@@ -191,14 +152,14 @@ async function fetchAllOrders(region) {
 				},
 				includeOrderData: true,
 				includeScheduleInformation: true,
-				// orderStatus: [
-				// 	// "scheduled",
-				// 	// "on_route",
-				// 	// "servicing",
-				// 	// "success",
-				// 	// "failed",
-				// 	// "rejected",
-				// ],
+				orderStatus: [
+					"scheduled",
+					"on_route",
+					"servicing",
+					"success",
+					"failed",
+					"rejected",
+				],
 			};
 
 			if (after_tag) {
@@ -295,7 +256,7 @@ async function mergeOrderData(orders, orderCompletionDetails) {
 		if (!orderDetails) {
 			console.log("No details found");
 		}
-		const orderDate = order.data?.date ?? "";
+		const orderDate = dayjs(order.data?.date ?? "").format("YYYY-MM-DD");
 		const region = order.region;
 		const stopID = order.data?.orderNo ?? "";
 		const form = orderDetails.data?.form ?? "";
@@ -304,8 +265,6 @@ async function mergeOrderData(orders, orderCompletionDetails) {
 		let customerInvoiceUrls;
 		let shelfPhotoUrls;
 		let targetPoNumberDirect;
-		// console.log(order);
-		// console.log(form);
 
 		if (form && typeof form === "object") {
 			cin7InvoiceNo = form.full_service_invoice_no;
@@ -348,14 +307,11 @@ async function mergeOrderData(orders, orderCompletionDetails) {
 		result.push([
 			orderDate,
 			region,
-			// optimorouteID,
 			stopID,
 			invNumber,
 			targetPoNumberDirect,
-			// targetPoFromOtherField,
 			whishaInvoiceUrls,
 			customerInvoiceUrls,
-			shelfPhotoUrls,
 		]);
 	}
 
@@ -365,49 +321,105 @@ async function mergeOrderData(orders, orderCompletionDetails) {
 function getCurrentAndTrailingDates() {
 	const format = "YYYY-MM-DD";
 	const now = dayjs();
-	const formattedNow = now.format(format);
-	const startOfCurrentMonth = dayjs().month(now.month()).date(1).format(format);
+	const startOfCurrentMonth = dayjs().month(now.month()).date(1);
 	const startOfTrailingMonth = dayjs()
 		.month(now.month() - 1)
-		.date(1)
-		.format(format);
+		.date(1);
 	const endOfTrailingMonth = dayjs()
 		.month(now.month())
-		.subtract(1, "day")
-		.format(format);
+		.date(1)
+		.subtract(1, "day");
 	// const startOf2ndTrailingMonth = dayjs()
 	// 	.month(now.month() - 2)
-	// 	.date(1)
-	// 	.format(format);
+	// 	.date(1);
 	// const endOf2ndTrailingMonth = dayjs()
 	// 	.month(now.month() - 1)
-	// 	.subtract(1, "day")
-	// 	.format(format);
+	// 	.date(1)
+	// 	.subtract(1, "day");
 	// const startOf3rdTrailingMonth = dayjs()
 	// 	.month(now.month() - 3)
-	// 	.date(1)
-	// 	.format(format);
+	// 	.date(1);
 	// const endOf3rdTrailingMonth = dayjs()
 	// 	.month(now.month() - 2)
-	// 	.subtract(1, "day")
-	// 	.format(format);
+	// 	.date(1)
+	// 	.subtract(1, "day");
+
+	// const startOf4thTrailingMonth = dayjs()
+	// 	.month(now.month() - 4)
+	// 	.date(1);
+	// const endOf4thTrailingMonth = dayjs()
+	// 	.month(now.month() - 3)
+	// 	.date(1)
+	// 	.subtract(1, "day");
+
+	// const startOf5thTrailingMonth = dayjs()
+	// 	.month(now.month() - 5)
+	// 	.date(1);
+	// const endOf5thTrailingMonth = dayjs()
+	// 	.month(now.month() - 4)
+	// 	.date(1)
+	// 	.subtract(1, "day");
+
+	// const startOf6thTrailingMonth = dayjs()
+	// 	.month(now.month() - 6)
+	// 	.date(1);
+	// const endOf6thTrailingMonth = dayjs()
+	// 	.month(now.month() - 5)
+	// 	.date(1)
+	// 	.subtract(1, "day");
+
+	// const startOf7thTrailingMonth = dayjs()
+	// 	.month(now.month() - 7)
+	// 	.date(1);
+	// const endOf7thTrailingMonth = dayjs()
+	// 	.month(now.month() - 6)
+	// 	.date(1)
+	// 	.subtract(1, "day");
+
+	// const startOf8thTrailingMonth = dayjs()
+	// 	.month(now.month() - 8)
+	// 	.date(1);
+	// const endOf8thTrailingMonth = dayjs()
+	// 	.month(now.month() - 7)
+	// 	.date(1)
+	// 	.subtract(1, "day");
 
 	const monthsToFetch = [
 		// {
-		// 	start: startOf3rdTrailingMonth,
-		// 	end: endOf3rdTrailingMonth,
+		// 	start: startOf8thTrailingMonth.format(format),
+		// 	end: endOf8thTrailingMonth.format(format),
 		// },
 		// {
-		// 	start: startOf2ndTrailingMonth,
-		// 	end: endOf2ndTrailingMonth,
+		// 	start: startOf7thTrailingMonth.format(format),
+		// 	end: endOf7thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf6thTrailingMonth.format(format),
+		// 	end: endOf6thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf5thTrailingMonth.format(format),
+		// 	end: endOf5thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf4thTrailingMonth.format(format),
+		// 	end: endOf4thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf3rdTrailingMonth.format(format),
+		// 	end: endOf3rdTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf2ndTrailingMonth.format(format),
+		// 	end: endOf2ndTrailingMonth.format(format),
 		// },
 		{
-			start: startOfTrailingMonth,
-			end: endOfTrailingMonth,
+			start: startOfTrailingMonth.format(format),
+			end: endOfTrailingMonth.format(format),
 		},
 		{
-			start: startOfCurrentMonth,
-			end: formattedNow,
+			start: startOfCurrentMonth.format(format),
+			end: now.format(format),
 		},
 	];
 
