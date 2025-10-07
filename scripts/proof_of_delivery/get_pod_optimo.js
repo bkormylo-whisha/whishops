@@ -127,7 +127,7 @@ async function uploadToSheet(resultWithHeaders) {
 		functionName: "Insert POD Optimo",
 		outSheetID: SHEET_SCHEMAS.POD_IMPORT.prod_id,
 		outSheetName: SHEET_SCHEMAS.POD_IMPORT.pages.pod,
-		outSheetRange: "A1:I90000",
+		outSheetRange: "A1:I",
 		wipePreviousData: true,
 		insertTimestamp: true,
 		timestampCol: 8,

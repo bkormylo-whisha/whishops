@@ -260,7 +260,7 @@ export const SHEET_SCHEMAS = {
 	POD_IMPORT: {
 		prod_id: "17oEgQ3qbtqyROlTPKpIB5Wm0okoUhViCzxMda3lMhpw",
 		pages: {
-			pod: "POD",
+			pod: "POD Current + Trailing Months",
 		},
 	},
 };
