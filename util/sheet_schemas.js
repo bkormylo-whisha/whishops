@@ -140,8 +140,8 @@ export const SHEET_SCHEMAS = {
 	},
 
 	WHISHACCEL_DAILY_COVERAGE: {
-		id: "1AV83qqxsEpDsGMxFwrjyYVp7lGZeG1rVbUPWBfE0WP4",
-		sand2: "1nJfonP5Z1s_r0a1NOXFEoqm9c_5o4k-LIA0HWKHWDJM",
+		id: "1SDHPnU3pp4EiD66CSqPf7FhsEqC3gsBcMODQl0IUJjE",
+		sand2: "1pk_eJNDr_F8G24unMDDr2EHICSexNJsZI276HXXBD-4",
 		prod_id: "1EG4fUlfd1-wOXjLcoUywuI83sKZiUpTTWpW0zaZK2Sc",
 		pages: {
 			rtg_optimoupload_nc_pnw: "RTG: Optimo Upload NC/PNW",

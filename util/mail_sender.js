@@ -9,8 +9,18 @@ export default function mailSender(params) {
 		const bodyText = params.bodyText ?? "";
 		const bodyHtml = params.html ?? "";
 		const bodyAmp = params.amp ?? "";
-		const user = process.env.EMAIL_USERNAME;
-		const password = process.env.EMAIL_APP_PASSWORD;
+		const fromFinance = params.fromFinance ?? false;
+		const cc = params.cc ?? "";
+
+		let user;
+		let password;
+		if (!fromFinance) {
+			user = process.env.EMAIL_USERNAME;
+			password = process.env.EMAIL_APP_PASSWORD;
+		} else {
+			user = process.env.FINANCE_EMAIL_USERNAME;
+			password = process.env.FINANCE_EMAIL_APP_PASSWORD;
+		}
 
 		const transporter = nodemailer.createTransport({
 			service: "Gmail",
@@ -21,11 +31,13 @@ export default function mailSender(params) {
 				user: user,
 				pass: password,
 			},
+			pool: true,
 		});
 
 		const mailOptions = {
 			from: user,
 			to: recipients,
+			cc: cc,
 			subject: subject,
 			text: bodyText,
 			html: bodyHtml,

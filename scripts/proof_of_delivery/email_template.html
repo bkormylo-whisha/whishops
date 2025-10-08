@@ -23,13 +23,16 @@
 
 						<tr>
 							<td style="padding: 30px; color: #333333;">
+								<p style="font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+									PLEASE IGNORE PREVIOUS EMAIL
+								</p>
 
 								<p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">
 									Dear Valued Partner,
 								</p>
 
 								<p style="font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
-									Our records indicate that invoice **{{invoice_number}}** for **{{amount_due}}** is past due. Please remit payment immediately to avoid disruption of service.
+									Our records indicate that invoice #{{invoice_number}} for {{amount_due}} is past due. Please remit payment immediately to avoid disruption of service.
 								</p>
 
 								<p style="font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
@@ -39,7 +42,7 @@
 								<table border="0" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
 									<tr>
 										<td align="center" style="border-radius: 4px; background-color: #28a745; padding: 12px 25px;">
-											<a href="mailto://ar@whisha.com" target="_blank" style="font-size: 16px; text-decoration: none; color: #ffffff; display: inline-block; font-weight: bold;">
+											<a href="mailto://finance@whisha.com?subject=Invoice {{invoice_number}}" target="_blank" style="font-size: 16px; text-decoration: none; color: #ffffff; display: inline-block; font-weight: bold;">
 												Pay Now
 											</a>
 										</td>

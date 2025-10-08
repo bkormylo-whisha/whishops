@@ -39,7 +39,7 @@ async function getUnpaidInvoices() {
 	const sproutsSheetInserter = sheetInserter({
 		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
 		outSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.sprouts,
-		outSheetRange: "A2",
+		outSheetRange: "A2:E",
 		wipePreviousData: true,
 	});
 
@@ -71,7 +71,9 @@ async function getDataFromArDashboard() {
 	const filteredData = overdueInvoiceData.filter(
 		(row) =>
 			row.at(9) === "Unpaid" &&
-			(row.at(12) === "Sprouts" || row.at(12) === "Whole Foods"),
+			(row.at(12) === "Sprouts" || row.at(12) === "Whole Foods") &&
+			row.at(16) !== "Accounting" &&
+			row.at(16) !== "Dispatch and Delivery Issues",
 	);
 	console.log(`Got rows: ${filteredData.length}`);
 
@@ -86,14 +88,15 @@ async function getDataFromArDashboard() {
 		if (row.at(12) === "Sprouts") {
 			const storeNumber = storeName.split(" ").at(-1).split("#").at(-1);
 			const storeNumberLength = storeNumber.length;
-			const sproutsEmail = `st${
-				storeNumberLength === 2 ? "0" : ""
-			}${storeNumber}reciever@sprouts.com`;
+			const sproutsEmail = `st${storeNumberLength === 2 || storeNumberLength === 1 ? "0" : ""}${
+				storeNumberLength === 1 ? "0" : ""
+			}${storeNumber}receiver@sprouts.com`;
 
 			const formattedRow = {
 				id: invoiceNumber,
 				email: sproutsEmail,
 				amount: amount,
+				storeName: storeName.split(":").at(-1),
 			};
 			sproutsData.push(formattedRow);
 		} else {

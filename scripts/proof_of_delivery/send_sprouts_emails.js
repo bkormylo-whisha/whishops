@@ -1,6 +1,7 @@
 import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { sheetExtractor } from "../../util/sheet_extractor.js";
 import mailSender from "../../util/mail_sender.js";
+import mailSenderRework from "../../util/mail_sender_rework.js";
 import path from "path";
 import * as fs from "fs";
 
@@ -26,26 +27,31 @@ async function sendSproutsInvoiceEmails() {
 		return;
 	}
 
-	for (const row of sproutsData.slice(1, 3)) {
+	const mailer = mailSenderRework({ fromFinance: true });
+	mailer.init();
+
+	for (const row of sproutsData) {
 		const invoiceNumber = row.at(0);
 		const recipient = row.at(1);
-		const amountDue = `$${row.at(2).toFixed(2)}`;
-		const pod = row.at(3);
+		const amountDue = `$${Number(row.at(2)).toFixed(2)}`;
+		const storeName = row.at(3);
+		const pod = row.at(4).split(",").at(0);
+		if (!pod || pod === "") {
+			continue;
+		}
 		const emailHTML = emailTemplate
 			.replace("{{PodURL}}", pod)
-			.replace("{{invoice_number}}", invoiceNumber)
+			.replaceAll("{{invoice_number}}", invoiceNumber)
 			.replace("{{amount_due}}", amountDue);
 
-		// .replace(
-		// 	"https://yourpaymentlink.com",
-		// 	`https://payment.whisha.com?inv=${invoiceNumber}`,
-		// );
-		const mailer = mailSender({
-			recipients: ["bkormylo@whisha.com"],
-			subject: "UNPAID INVOICE: WHISHA COFFEE DISTRIBUTORS",
+		mailer.send({
+			recipients: [recipient],
+			// cc: ["finance@whisha.com"],
+			// recipients: ["bkormylo@whisha.com"],
+			// recipients: ["bkormylo@whisha.com", "kgada@whisha.com"],
+			subject: `WHISHA COFFEE - UNPAID INVOICE ${storeName}`,
 			html: emailHTML,
 		});
-		await mailer.run();
 	}
 }
 
@@ -54,7 +60,7 @@ async function getDataFromDOL() {
 		functionName: "Get Sprouts Emails",
 		inSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
 		inSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.sprouts,
-		inSheetRange: "A1:D",
+		inSheetRange: "A1:E",
 	});
 
 	const sproutsData = await sproutsEmails.run();
