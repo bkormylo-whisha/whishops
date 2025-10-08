@@ -25,12 +25,16 @@ async function cin7GetPrintedOrders() {
 	// sendPrintedOrdersToDispatchLog(formattedData);
 
 	const regionalData = await dividePrintedOrdersByRegion(formattedData);
-	console.log(regionalData.FLORIDA.length);
-	console.log(regionalData.NORCAL.length);
-	console.log(regionalData.MIDWEST.length);
-	// Orders will need to be matched against the MASTER STORE LIST
-	// Then use the region info to pick which sheet gets the order
-	await sendPrintedOrdersToDispatchLog(formattedData);
+	for (const key in regionalData) {
+		console.log(`${key}: ${regionalData[key].length}`);
+		const regionalSheetInserter = sheetInserter({
+			outSheetID: SHEET_SCHEMAS.PRINT_LOG_STAGING.prod_id,
+			outSheetName: key,
+			outSheetRange: "A2",
+			wipePreviousData: true,
+		});
+		regionalSheetInserter.run(regionalData[key]);
+	}
 }
 
 async function sendPrintedOrdersToDispatchLog(printedOrders) {
@@ -74,8 +78,8 @@ async function getPrintedOrdersCin7() {
 	let page = 1;
 	let result = [];
 	let hasMorePages = true;
-	const stage = "Printed";
-	// const stage = "New";
+	// const stage = "Printed";
+	const stage = "New";
 	const rowCount = 250;
 	while (hasMorePages) {
 		// There are old printed orders left in Cin7, invoiceDate filtering removes them

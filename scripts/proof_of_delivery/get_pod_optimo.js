@@ -43,6 +43,7 @@ async function getPODOptimo() {
 		"Target PO Number Direct",
 		"Whisha POD",
 		"Customer POD",
+		"Notes",
 	];
 
 	var result = [];
@@ -97,6 +98,7 @@ async function uploadToBigQuery(data) {
 		"target_po_number",
 		"whisha_pod",
 		"customer_pod",
+		"notes",
 	];
 
 	const batchSize = 5000;
@@ -265,6 +267,8 @@ async function mergeOrderData(orders, orderCompletionDetails) {
 		let customerInvoiceUrls;
 		let shelfPhotoUrls;
 		let targetPoNumberDirect;
+		const notes = form?.note ?? "";
+		// console.log(form);
 
 		if (form && typeof form === "object") {
 			cin7InvoiceNo = form.full_service_invoice_no;
@@ -312,6 +316,7 @@ async function mergeOrderData(orders, orderCompletionDetails) {
 			targetPoNumberDirect,
 			whishaInvoiceUrls,
 			customerInvoiceUrls,
+			notes,
 		]);
 	}
 
@@ -329,60 +334,60 @@ function getCurrentAndTrailingDates() {
 		.month(now.month())
 		.date(1)
 		.subtract(1, "day");
-	// const startOf2ndTrailingMonth = dayjs()
-	// 	.month(now.month() - 2)
-	// 	.date(1);
-	// const endOf2ndTrailingMonth = dayjs()
-	// 	.month(now.month() - 1)
-	// 	.date(1)
-	// 	.subtract(1, "day");
-	// const startOf3rdTrailingMonth = dayjs()
-	// 	.month(now.month() - 3)
-	// 	.date(1);
-	// const endOf3rdTrailingMonth = dayjs()
-	// 	.month(now.month() - 2)
-	// 	.date(1)
-	// 	.subtract(1, "day");
+	const startOf2ndTrailingMonth = dayjs()
+		.month(now.month() - 2)
+		.date(1);
+	const endOf2ndTrailingMonth = dayjs()
+		.month(now.month() - 1)
+		.date(1)
+		.subtract(1, "day");
+	const startOf3rdTrailingMonth = dayjs()
+		.month(now.month() - 3)
+		.date(1);
+	const endOf3rdTrailingMonth = dayjs()
+		.month(now.month() - 2)
+		.date(1)
+		.subtract(1, "day");
 
-	// const startOf4thTrailingMonth = dayjs()
-	// 	.month(now.month() - 4)
-	// 	.date(1);
-	// const endOf4thTrailingMonth = dayjs()
-	// 	.month(now.month() - 3)
-	// 	.date(1)
-	// 	.subtract(1, "day");
+	const startOf4thTrailingMonth = dayjs()
+		.month(now.month() - 4)
+		.date(1);
+	const endOf4thTrailingMonth = dayjs()
+		.month(now.month() - 3)
+		.date(1)
+		.subtract(1, "day");
 
-	// const startOf5thTrailingMonth = dayjs()
-	// 	.month(now.month() - 5)
-	// 	.date(1);
-	// const endOf5thTrailingMonth = dayjs()
-	// 	.month(now.month() - 4)
-	// 	.date(1)
-	// 	.subtract(1, "day");
+	const startOf5thTrailingMonth = dayjs()
+		.month(now.month() - 5)
+		.date(1);
+	const endOf5thTrailingMonth = dayjs()
+		.month(now.month() - 4)
+		.date(1)
+		.subtract(1, "day");
 
-	// const startOf6thTrailingMonth = dayjs()
-	// 	.month(now.month() - 6)
-	// 	.date(1);
-	// const endOf6thTrailingMonth = dayjs()
-	// 	.month(now.month() - 5)
-	// 	.date(1)
-	// 	.subtract(1, "day");
+	const startOf6thTrailingMonth = dayjs()
+		.month(now.month() - 6)
+		.date(1);
+	const endOf6thTrailingMonth = dayjs()
+		.month(now.month() - 5)
+		.date(1)
+		.subtract(1, "day");
 
-	// const startOf7thTrailingMonth = dayjs()
-	// 	.month(now.month() - 7)
-	// 	.date(1);
-	// const endOf7thTrailingMonth = dayjs()
-	// 	.month(now.month() - 6)
-	// 	.date(1)
-	// 	.subtract(1, "day");
+	const startOf7thTrailingMonth = dayjs()
+		.month(now.month() - 7)
+		.date(1);
+	const endOf7thTrailingMonth = dayjs()
+		.month(now.month() - 6)
+		.date(1)
+		.subtract(1, "day");
 
-	// const startOf8thTrailingMonth = dayjs()
-	// 	.month(now.month() - 8)
-	// 	.date(1);
-	// const endOf8thTrailingMonth = dayjs()
-	// 	.month(now.month() - 7)
-	// 	.date(1)
-	// 	.subtract(1, "day");
+	const startOf8thTrailingMonth = dayjs()
+		.month(now.month() - 8)
+		.date(1);
+	const endOf8thTrailingMonth = dayjs()
+		.month(now.month() - 7)
+		.date(1)
+		.subtract(1, "day");
 
 	const monthsToFetch = [
 		// {
@@ -393,6 +398,7 @@ function getCurrentAndTrailingDates() {
 		// 	start: startOf7thTrailingMonth.format(format),
 		// 	end: endOf7thTrailingMonth.format(format),
 		// },
+
 		// {
 		// 	start: startOf6thTrailingMonth.format(format),
 		// 	end: endOf6thTrailingMonth.format(format),
@@ -401,6 +407,7 @@ function getCurrentAndTrailingDates() {
 		// 	start: startOf5thTrailingMonth.format(format),
 		// 	end: endOf5thTrailingMonth.format(format),
 		// },
+
 		// {
 		// 	start: startOf4thTrailingMonth.format(format),
 		// 	end: endOf4thTrailingMonth.format(format),
@@ -409,10 +416,11 @@ function getCurrentAndTrailingDates() {
 		// 	start: startOf3rdTrailingMonth.format(format),
 		// 	end: endOf3rdTrailingMonth.format(format),
 		// },
-		// {
-		// 	start: startOf2ndTrailingMonth.format(format),
-		// 	end: endOf2ndTrailingMonth.format(format),
-		// },
+
+		{
+			start: startOf2ndTrailingMonth.format(format),
+			end: endOf2ndTrailingMonth.format(format),
+		},
 		{
 			start: startOfTrailingMonth.format(format),
 			end: endOfTrailingMonth.format(format),

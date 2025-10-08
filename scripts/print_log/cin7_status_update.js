@@ -94,7 +94,7 @@ async function getDataFromDOL() {
 		const formattedRow = {
 			id: orderId,
 			estimatedDeliveryDate: etd,
-			trackingCode: rsr,
+			// trackingCode: rsr,
 		};
 		result.push(formattedRow);
 	}

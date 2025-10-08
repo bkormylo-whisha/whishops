@@ -15,6 +15,8 @@ import * as backup_and_clear_dol from "./scripts/backup_and_clear_dol.js";
 import * as backup_dol from "./scripts/backup_dol.js";
 import * as stocktake_sync from "./scripts/stocktake_sync.js";
 import * as get_pod_optimo from "./scripts/proof_of_delivery/get_pod_optimo.js";
+import * as get_unpaid_invoices from "./scripts/proof_of_delivery/get_unpaid_invoices.js";
+import * as send_sprouts_emails from "./scripts/proof_of_delivery/send_sprouts_emails.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -77,6 +79,14 @@ app.get("/stocktake_sync", (req, res) => {
 
 app.get("/get_pod_optimo", (req, res) => {
 	get_pod_optimo.run(req, res);
+});
+
+app.get("/get_unpaid_invoices", (req, res) => {
+	get_unpaid_invoices.run(req, res);
+});
+
+app.get("/send_sprouts_emails", (req, res) => {
+	send_sprouts_emails.run(req, res);
 });
 
 app.listen(PORT, () => {

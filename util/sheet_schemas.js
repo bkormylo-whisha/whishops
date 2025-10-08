@@ -263,6 +263,37 @@ export const SHEET_SCHEMAS = {
 			pod: "POD Current + Trailing Months",
 		},
 	},
+
+	PRINT_LOG_STAGING: {
+		prod_id: "1ldobF0KB1KJ2A5oFfBmU4T6oAC5uko4uk4uP9RH-tgU",
+		pages: {
+			NORCAL: "NORCAL",
+			SOCAL: "SOCAL",
+			PNW: "PNW",
+			ROCKY_MOUNTAIN: "ROCKY MOUNTAIN",
+			TEXAS: "TEXAS",
+			MID_ATLANTIC: "MID-ATLANTIC",
+			NORTHEAST: "NORTHEAST",
+			SOUTHEAST: "SOUTHEAST",
+			FLORIDA: "FLORIDA",
+			UNKNOWN: "UNKNOWN",
+		},
+	},
+
+	WHISHA_AR_DASHBOARD: {
+		prod_id: "1pShCPDBh7WzWsUOK2l1uPvB8pNMj5jXt56SUjinboz0",
+		pages: {
+			ar_overdue_invoice_list_2025: "AR: Overdue Invoice List 2025",
+		},
+	},
+
+	INVOICE_MAILER: {
+		prod_id: "1WO-Nkdi9YvNLE-1-QK6BYvLXQLplXsnMM8_zLwhNICw",
+		pages: {
+			sprouts: "Sprouts",
+			whole_foods: "Whole Foods",
+		},
+	},
 };
 
 // export { SHEET_SCHEMAS };

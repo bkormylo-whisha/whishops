@@ -7,6 +7,8 @@ export default function mailSender(params) {
 		const attachmentPath = params.attachmentPath ?? "";
 		const subject = params.subject ?? "Nodemailer Email";
 		const bodyText = params.bodyText ?? "";
+		const bodyHtml = params.html ?? "";
+		const bodyAmp = params.amp ?? "";
 		const user = process.env.EMAIL_USERNAME;
 		const password = process.env.EMAIL_APP_PASSWORD;
 
@@ -26,6 +28,8 @@ export default function mailSender(params) {
 			to: recipients,
 			subject: subject,
 			text: bodyText,
+			html: bodyHtml,
+			amp: bodyAmp,
 			attachments: [
 				{
 					filename: attachmentName,
