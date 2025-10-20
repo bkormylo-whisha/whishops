@@ -1,7 +1,6 @@
 import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { sheetExtractor } from "../../util/sheet_extractor.js";
 import mailSender from "../../util/mail_sender.js";
-import mailSenderRework from "../../util/mail_sender_rework.js";
 import path from "path";
 import * as fs from "fs";
 
@@ -27,8 +26,7 @@ async function sendSproutsInvoiceEmails() {
 		return;
 	}
 
-	const mailer = mailSenderRework({ fromFinance: true });
-	mailer.init();
+	const mailer = await mailSender({ fromFinance: true });
 
 	for (const row of sproutsData) {
 		const invoiceNumber = row.at(0);
@@ -44,7 +42,7 @@ async function sendSproutsInvoiceEmails() {
 			.replaceAll("{{invoice_number}}", invoiceNumber)
 			.replace("{{amount_due}}", amountDue);
 
-		mailer.send({
+		await mailer.send({
 			recipients: [recipient],
 			// cc: ["finance@whisha.com"],
 			// recipients: ["bkormylo@whisha.com"],

@@ -1,19 +1,12 @@
 import nodemailer from "nodemailer";
 
-export default function mailSender(params) {
-	async function run() {
-		const recipients = params.recipients;
-		const attachmentName = params.attachmentName ?? "file.csv";
-		const attachmentPath = params.attachmentPath ?? "";
-		const subject = params.subject ?? "Nodemailer Email";
-		const bodyText = params.bodyText ?? "";
-		const bodyHtml = params.html ?? "";
-		const bodyAmp = params.amp ?? "";
-		const fromFinance = params.fromFinance ?? false;
-		const cc = params.cc ?? "";
+export default async function mailSender(mailerParams) {
+	const fromFinance = mailerParams?.fromFinance ?? false;
+	let user;
+	let password;
+	let transporter;
 
-		let user;
-		let password;
+	async function init() {
 		if (!fromFinance) {
 			user = process.env.EMAIL_USERNAME;
 			password = process.env.EMAIL_APP_PASSWORD;
@@ -22,7 +15,7 @@ export default function mailSender(params) {
 			password = process.env.FINANCE_EMAIL_APP_PASSWORD;
 		}
 
-		const transporter = nodemailer.createTransport({
+		transporter = nodemailer.createTransport({
 			service: "Gmail",
 			host: "smtp.gmail.com",
 			port: 465,
@@ -33,8 +26,19 @@ export default function mailSender(params) {
 			},
 			pool: true,
 		});
+	}
 
-		const mailOptions = {
+	async function send(params) {
+		const recipients = params.recipients;
+		const attachmentName = params.attachmentName ?? "file.csv";
+		const attachmentPath = params.attachmentPath ?? "";
+		const subject = params.subject ?? "Nodemailer Email";
+		const bodyText = params.bodyText ?? "";
+		const bodyHtml = params.html ?? "";
+		const bodyAmp = params.amp ?? "";
+		const cc = params.cc ?? "";
+
+		let mailOptions = {
 			from: user,
 			to: recipients,
 			cc: cc,
@@ -42,13 +46,16 @@ export default function mailSender(params) {
 			text: bodyText,
 			html: bodyHtml,
 			amp: bodyAmp,
-			attachments: [
+		};
+
+		if (attachmentPath !== "") {
+			mailOptions.attachments = [
 				{
 					filename: attachmentName,
 					path: attachmentPath,
 				},
-			],
-		};
+			];
+		}
 
 		transporter.sendMail(mailOptions, (error, info) => {
 			if (error) {
@@ -59,7 +66,10 @@ export default function mailSender(params) {
 		});
 	}
 
+	await init();
+
 	return Object.freeze({
-		run: run,
+		// init: init,
+		send: send,
 	});
 }

@@ -21,17 +21,18 @@ async function runWholeFoodsUpload() {
 
 	const updatedOrderData = await getFullOrderDataCin7(formattedDate);
 	const formattedData = await formatCin7Data(updatedOrderData, formattedDate);
-	const filePath = writeCsvData(formattedData);
+	const filePath = writeCsvData(formattedData, formattedDate);
 	// uploadToFtp(filePath);
 
-	const mailer = mailSender({
-		recipients: ["bkormylo@whisha.com", "wsinks@whisha.com"],
+	const mailer = await mailSender();
+	await mailer.send({
+		recipients: ["bkormylo@whisha.com"],
+		// recipients: ["bkormylo@whisha.com", "wsinks@whisha.com"],
 		attachmentName: fileName,
 		attachmentPath: filePath,
 		subject: "Whole Foods Upload",
 		bodyText: "",
 	});
-	await mailer.run();
 }
 
 async function getFullOrderDataCin7(formattedDate) {
@@ -86,7 +87,12 @@ async function formatCin7Data(data) {
 	for (const salesOrder of data) {
 		for (let i = 1; i <= salesOrder.lineItems.length; i++) {
 			const lineItem = salesOrder.lineItems.at(i - 1);
+			const deliveryAddress1 = salesOrder.deliveryAddress1 ?? "";
+			const billingAddress1 = salesOrder.billingAddress1 ?? "";
 			const deliveryAddress2 = salesOrder.lastName.split(" ").at(2);
+			const internalComments = salesOrder.internalComments ?? "";
+			const deliveryInstructions = salesOrder.deliveryInstructions ?? "";
+			const itemNotes = lineItem.lineComments ?? "";
 			const company = salesOrder.company.split("-").at(-1).trim();
 			const totalItems = salesOrder.lineItems.reduce(
 				(total, item) => total + item.qty,
@@ -111,31 +117,34 @@ async function formatCin7Data(data) {
 				Mobile: salesOrder.mobile ?? "",
 				Fax: salesOrder.fax ?? "",
 				Email: `${salesOrder.email ?? ""}`,
+
 				"Delivery Company": `${salesOrder.deliveryCompany ?? ""}`,
 				"Delivery First Name": salesOrder.deliveryFirstName ?? "",
 				"Delivery Last Name": salesOrder.deliveryLastName ?? "",
-				"Delivery Address 1": `"${salesOrder.deliveryAddress1 ?? ""}"`,
+				"Delivery Address 1": `"${deliveryAddress1}"`,
 				"Delivery Address 2": deliveryAddress2,
 				"Delivery City": salesOrder.deliveryCity ?? "",
 				"Delivery State": salesOrder.deliveryState ?? "",
 				"Delivery Postal Code": salesOrder.deliveryPostalCode ?? "",
 				"Delivery Country": salesOrder.deliveryCountry ?? "",
+
 				"Billing Company": salesOrder.billingCompany ?? "",
 				"Billing First Name": salesOrder.billingFirstName ?? "",
 				"Billing Last Name": salesOrder.billingLastName ?? "",
-				"Billing Address 1": `"${salesOrder.billingAddress1 ?? ""}"`,
+				"Billing Address 1": `"${billingAddress1}"`,
 				"Billing Address 2": salesOrder.billingAddress2 ?? "",
 				"Billing City": salesOrder.billingCity ?? "",
 				"Billing State": salesOrder.billingState ?? "",
 				"Billing Postal Code": salesOrder.billingPostalCode ?? "",
 				"Billing Country": salesOrder.billingCountry ?? "",
+
 				"Created By": "",
 				"Sales Rep": "",
 				"Processed By": salesOrder.processedBy ?? "",
 				Branch: "",
 				"Branch ID": salesOrder.branchId ?? "",
-				"Internal Comments": `"${salesOrder.internalComments ?? ""}"`,
-				"Delivery Instructions": `"${salesOrder.deliveryInstructions ?? ""}"`,
+				"Internal Comments": `"${internalComments}"`,
+				"Delivery Instructions": `"${deliveryInstructions}"`,
 				"Tracking Code": `${salesOrder.trackingCode ?? ""}`,
 				"Project Name": salesOrder.projectName ?? "",
 				Channel: "", // Not a field
@@ -164,10 +173,12 @@ async function formatCin7Data(data) {
 				"Discount Description": `${salesOrder.discountDescription ?? ""}`,
 				"Discount Total (Local Currency)": salesOrder.discountTotal ?? "",
 				"Discount Total": salesOrder.discountTotal ?? "",
+
 				"Total Excl (Local Currency)": salesOrder.total ?? "",
 				"Total Excl": salesOrder.total ?? "",
 				"Total Incl (Local Currency)": salesOrder.total ?? "",
 				"Total Incl": salesOrder.total ?? "",
+
 				"Item Code": lineItem.code ?? "",
 				"Item Name": `${lineItem.name ?? ""}`,
 				"Item Qty": lineItem.qty ?? "",
@@ -179,7 +190,7 @@ async function formatCin7Data(data) {
 				"Item Option 1": lineItem.option1 ?? "",
 				"Item Option 2": lineItem.option2 ?? "",
 				"Item Option 3": lineItem.option3 ?? "",
-				"Item Notes": `"${lineItem.lineComments ?? ""}"`,
+				"Item Notes": `"${itemNotes}"`,
 				"Item Row Format": "",
 				"Item BOM Load": "",
 				"Item Sort": i,

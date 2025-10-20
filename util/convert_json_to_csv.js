@@ -9,6 +9,12 @@ export default function convertJsonToCsv(jsonData) {
 		return headers
 			.map((header) => {
 				let value = obj[header];
+				if (typeof value === "string") {
+					value = value.trim();
+					if (value.startsWith('"') && value.endsWith('"')) {
+						value = value.substring(1, value.length - 1);
+					}
+				}
 				if (
 					typeof value === "string" &&
 					(value.includes(",") || value.includes('"') || value.includes("\n"))
