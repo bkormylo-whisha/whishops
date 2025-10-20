@@ -69,7 +69,6 @@ export default async function mailSender(mailerParams) {
 	await init();
 
 	return Object.freeze({
-		// init: init,
 		send: send,
 	});
 }

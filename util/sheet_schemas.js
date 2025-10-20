@@ -142,7 +142,7 @@ export const SHEET_SCHEMAS = {
 	WHISHACCEL_DAILY_COVERAGE: {
 		id: "1SDHPnU3pp4EiD66CSqPf7FhsEqC3gsBcMODQl0IUJjE",
 		sand2: "1pk_eJNDr_F8G24unMDDr2EHICSexNJsZI276HXXBD-4",
-		prod_id: "1EG4fUlfd1-wOXjLcoUywuI83sKZiUpTTWpW0zaZK2Sc",
+		prod_id: "1Yvd4YXK4Te8yRhZX0SvgGKpIXNbCFPnDAzdxoMStYi0",
 		pages: {
 			rtg_optimoupload_nc_pnw: "RTG: Optimo Upload NC/PNW",
 			rtg_optimoupload_la_rm: "RTG: Optimo Upload LA/RM",

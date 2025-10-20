@@ -7,7 +7,9 @@ export function sheetInserter(params) {
 		const auth = await getAuthenticatedClient();
 		const sheets = google.sheets({ version: "v4", auth });
 
-		console.log(`Running script: ${params.functionName}`);
+		if (params.functionName) {
+			console.log(`Running script: ${params.functionName}`);
+		}
 
 		const outSheetID = params.outSheetID;
 		const outSheetName = params.outSheetName;
@@ -39,23 +41,25 @@ export function sheetInserter(params) {
 				console.log(`Cleared range: ${clearResponse.data.clearedRange}`);
 			}
 
-			const outRequest = {
-				spreadsheetId: outSheetID,
-				resource: {
-					valueInputOption: "USER_ENTERED",
-					data: [
-						{
-							range: `${outSheetName}!${outSheetRange}`,
-							majorDimension: "ROWS",
-							values: dataToInsert,
-						},
-					],
-				},
-			};
+			if (inSheetData.length > 0) {
+				const outRequest = {
+					spreadsheetId: outSheetID,
+					resource: {
+						valueInputOption: "USER_ENTERED",
+						data: [
+							{
+								range: `${outSheetName}!${outSheetRange}`,
+								majorDimension: "ROWS",
+								values: dataToInsert,
+							},
+						],
+					},
+				};
 
-			const updateResponse =
-				await sheets.spreadsheets.values.batchUpdate(outRequest);
-			console.log(`Updated cells: ${updateResponse.data.totalUpdatedCells}`);
+				const updateResponse =
+					await sheets.spreadsheets.values.batchUpdate(outRequest);
+				console.log(`Updated cells: ${updateResponse.data.totalUpdatedCells}`);
+			}
 		} catch (e) {
 			console.error("Error during sheet operation:", e);
 			throw e;

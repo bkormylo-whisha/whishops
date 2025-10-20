@@ -18,9 +18,9 @@ export const run = async (req, res) => {
 async function cin7GetPrintedOrders() {
 	console.log("Running Script: Cin7 Get Printed Orders");
 	const printedOrdersJson = await getPrintedOrdersCin7();
-	const formattedData = await formatPrintedOrderJson(printedOrdersJson);
+	console.log(`Got ${printedOrdersJson.length} printed orders from Cin7`);
 
-	console.log(`Got ${formattedData.length} printed orders from Cin7`);
+	const formattedData = await formatPrintedOrderJson(printedOrdersJson);
 
 	// sendPrintedOrdersToDispatchLog(formattedData);
 
@@ -30,37 +30,37 @@ async function cin7GetPrintedOrders() {
 		const regionalSheetInserter = sheetInserter({
 			outSheetID: SHEET_SCHEMAS.PRINT_LOG_STAGING.prod_id,
 			outSheetName: key,
-			outSheetRange: "A2",
+			outSheetRange: "A2:Z",
 			wipePreviousData: true,
 		});
 		regionalSheetInserter.run(regionalData[key]);
 	}
 }
 
-async function sendPrintedOrdersToDispatchLog(printedOrders) {
-	const dispatchLogSheetExtractor = sheetExtractor({
-		inSheetID: SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.prod_id,
-		inSheetName:
-			SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.pages.whs_dispatch_log,
-		inSheetRange: "B11:H500",
-	});
+// async function sendPrintedOrdersToDispatchLog(printedOrders) {
+// 	const dispatchLogSheetExtractor = sheetExtractor({
+// 		inSheetID: SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.prod_id,
+// 		inSheetName:
+// 			SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.pages.whs_dispatch_log,
+// 		inSheetRange: "B11:H500",
+// 	});
 
-	const prevOrderData = await dispatchLogSheetExtractor.run();
-	const prevOrders = prevOrderData.filter(
-		(row) => row.at(0) && row.at(0) !== "",
-	);
+// 	const prevOrderData = await dispatchLogSheetExtractor.run();
+// 	const prevOrders = prevOrderData.filter(
+// 		(row) => row.at(0) && row.at(0) !== "",
+// 	);
 
-	const dispatchLogSheetInserter = sheetInserter({
-		outSheetID: SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.prod_id,
-		outSheetName:
-			SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.pages.whs_dispatch_log,
-		outSheetRange: "B11:H",
-		wipePreviousData: true,
-	});
+// 	const dispatchLogSheetInserter = sheetInserter({
+// 		outSheetID: SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.prod_id,
+// 		outSheetName:
+// 			SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.pages.whs_dispatch_log,
+// 		outSheetRange: "B11:H",
+// 		wipePreviousData: true,
+// 	});
 
-	const allOrders = [...prevOrders, ...printedOrders];
-	await dispatchLogSheetInserter.run(allOrders);
-}
+// 	const allOrders = [...prevOrders, ...printedOrders];
+// 	await dispatchLogSheetInserter.run(allOrders);
+// }
 
 async function getPrintedOrdersCin7() {
 	const url = "https://api.cin7.com/api/";
@@ -83,10 +83,11 @@ async function getPrintedOrdersCin7() {
 	const rowCount = 250;
 	while (hasMorePages) {
 		// There are old printed orders left in Cin7, invoiceDate filtering removes them
-		const user_endpoint = `v1/SalesOrders?where=stage='${stage}' AND invoiceDate>${formattedDate}T00:00:00Z&order=invoiceDate&page=${page}&rows=250`;
+		const sales_endpoint = `v1/SalesOrders?where=invoiceDate>${formattedDate}T00:00:00Z&order=invoiceDate&page=${page}&rows=250`;
+		// const sales_endpoint = `v1/SalesOrders?where=stage='${stage}' AND invoiceDate>${formattedDate}T00:00:00Z&order=invoiceDate&page=${page}&rows=250`;
 
 		try {
-			const response = await fetch(`${url}${user_endpoint}`, options);
+			const response = await fetch(`${url}${sales_endpoint}`, options);
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
@@ -120,14 +121,41 @@ async function getPrintedOrdersCin7() {
 async function formatPrintedOrderJson(printedOrderJson) {
 	let result = [];
 	const date = dayjs();
+	const userMap = await getUsernameMapFromCin7();
+
 	for (const order of printedOrderJson) {
-		const createdDate = `${order.createdDate}`;
-		const dispatchDate = `${order.dispatchedDate}`;
-		const createdBy = `${order.createdBy}`;
+		const cin7Stage = order.stage;
+
+		const createdDate = dayjs(order.createdDate).format("MM/DD/YY");
+		const dispatchDate = dayjs(order.dispatchedDate).format("MM/DD/YY");
+		const createdBy = userMap.get(order.createdBy); // Each code references a name, need those
 		const invoiceNumber = `${order.invoiceNumber}`;
 		const storeName = `${order.company}`;
-		const plTimestamp = date.format("YYYY-MM-DD HH:mm A");
+		const plTimestamp = date.format("HH:mm A");
 		const originalRep = `${order.trackingCode}`;
+		const currentRep = "";
+		const warehouseNotes = "";
+		const orderAmount = order.total.toFixed(2);
+		const dispatchHistory = "";
+		const assignee = "";
+		const stage = "";
+		let cin7Status = ""; // Comes from Submit Directs and needs more info
+		if (order.status === "VOID") {
+			cin7Status = "Void";
+		} else if (order.stage === "Dispatched") {
+			cin7Status = "Dispatched";
+		} else if (order.stage === "Recieved") {
+			cin7Status = "Yes";
+		} else {
+			cin7Status = order.status.at(0) + order.status.slice(1).toLowerCase();
+		}
+		const orderLogStatus = "";
+		const packOrder = "";
+		const mon = `${order.invoiceNumber}`;
+		const prepack = "";
+		const deliveryDate = dayjs(order.invoiceDate).format("MM/DD/YY"); // Switch to ETD later
+		const stopID = "";
+		const units = order.lineItems.reduce((acc, curr) => acc + curr.qty, 0);
 
 		result.push([
 			createdDate,
@@ -137,6 +165,20 @@ async function formatPrintedOrderJson(printedOrderJson) {
 			storeName,
 			plTimestamp,
 			originalRep,
+			currentRep,
+			warehouseNotes,
+			orderAmount,
+			dispatchHistory,
+			assignee,
+			stage,
+			cin7Status,
+			orderLogStatus,
+			packOrder,
+			mon,
+			prepack,
+			deliveryDate,
+			stopID,
+			units,
 		]);
 	}
 
@@ -163,7 +205,10 @@ async function dividePrintedOrdersByRegion(formattedPrintedOrderJson) {
 	const masterStoreMap = new Map();
 
 	for (const row of masterStoreListData) {
-		masterStoreMap.set(row.cin7_name.trim(), row.region);
+		masterStoreMap.set(row.cin7_name.trim(), {
+			region: row.region,
+			stop_id: row.stop_id,
+		});
 		// masterStoreMap.set(row.cin7_name.split("(").at(0).trim(), row.region);
 		// masterStoreMap.set(row.cin7_name.replace(/\s/g, ""), row.region);
 	}
@@ -171,9 +216,10 @@ async function dividePrintedOrdersByRegion(formattedPrintedOrderJson) {
 	for (const row of formattedPrintedOrderJson) {
 		// const storeName = row.at(4).split("(").at(0).trim();
 		const storeName = row.at(4).trim();
-		const region = masterStoreMap.get(storeName);
-		if (region && regions.hasOwnProperty(region)) {
-			regions[region].push(row);
+		const storeData = masterStoreMap.get(storeName);
+		if (storeData?.region && regions.hasOwnProperty(storeData.region)) {
+			row[19] = storeData.stop_id;
+			regions[storeData.region].push(row);
 		} else {
 			console.log(`Missing in Master Store List: ${storeName}`);
 			// console.warn(
@@ -186,11 +232,49 @@ async function dividePrintedOrdersByRegion(formattedPrintedOrderJson) {
 	return regions;
 }
 
+async function getUsernameMapFromCin7() {
+	const url = "https://api.cin7.com/api/";
+	const username = process.env.CIN7_USERNAME;
+	const password = process.env.CIN7_PASSWORD;
+
+	let options = {};
+	options.headers = {
+		Authorization: "Basic " + btoa(username + ":" + password),
+	};
+
+	let result = [];
+	const user_endpoint = `v1/Users?fields=id,firstName,lastName,isActive`;
+
+	try {
+		const response = await fetch(`${url}${user_endpoint}`, options);
+		if (!response.ok) {
+			throw new Error(`HTTP error! status: ${response.status}`);
+		}
+		const data = await response.json();
+		await delay(1000);
+
+		for (let i = 0; i < data.length; i++) {
+			const row = data[i];
+			result.push(row);
+		}
+	} catch (error) {
+		console.error("Failed to fetch data:", error);
+	}
+
+	const nameMap = new Map();
+	for (const user of result) {
+		const fullName = `${user.firstName} ${user.lastName}`;
+		nameMap.set(user.id, fullName);
+	}
+
+	return nameMap;
+}
+
 async function getMasterStoreListFromBQ() {
 	try {
 		const bigquery = new BigQuery();
 		const query = `
-			SELECT cin7_name, region
+			SELECT cin7_name, region, stop_id
 			FROM \`whishops.order_management.master-store-list\`
 		`;
 
