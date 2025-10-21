@@ -15,7 +15,7 @@ export const run = async (req, res) => {
 };
 
 async function sendSproutsInvoiceEmails() {
-	const sproutsData = await getDataFromDOL();
+	const sproutsData = await getDataFromInvoiceMailer();
 	const baseDir = path.resolve("./scripts/proof_of_delivery/");
 	const templatePath = path.join(baseDir, "email_template.html");
 	let emailTemplate;
@@ -30,10 +30,14 @@ async function sendSproutsInvoiceEmails() {
 
 	for (const row of sproutsData) {
 		const invoiceNumber = row.at(0);
-		const recipient = row.at(1);
-		const amountDue = `$${Number(row.at(2)).toFixed(2)}`;
-		const storeName = row.at(3);
-		const pod = row.at(4).split(",").at(0);
+		const recipient = row.at(2);
+		const amountDue = `$${Number(row.at(3)).toFixed(2)}`;
+		const storeName = row.at(4);
+		let pod = row.at(6);
+		console.log(`Pod: ${pod}`);
+		if (pod !== undefined && pod.includes(",")) {
+			pod = pod.split(",").at(0);
+		}
 		if (!pod || pod === "") {
 			continue;
 		}
@@ -53,15 +57,14 @@ async function sendSproutsInvoiceEmails() {
 	}
 }
 
-async function getDataFromDOL() {
-	const sproutsEmails = sheetExtractor({
+async function getDataFromInvoiceMailer() {
+	const sproutsEmailListExtractor = sheetExtractor({
 		functionName: "Get Sprouts Emails",
 		inSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
 		inSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.sprouts,
-		inSheetRange: "A1:E",
+		inSheetRange: "A2:H",
 	});
 
-	const sproutsData = await sproutsEmails.run();
-
+	const sproutsData = await sproutsEmailListExtractor.run();
 	return sproutsData;
 }

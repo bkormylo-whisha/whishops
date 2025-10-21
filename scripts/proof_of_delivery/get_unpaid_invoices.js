@@ -2,6 +2,7 @@ import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { sheetExtractor } from "../../util/sheet_extractor.js";
 import { BigQuery } from "@google-cloud/bigquery";
 import { sheetInserter } from "../../util/sheet_inserter.js";
+import excelDateToTimestamp from "../../util/excel_date_to_timestamp.js";
 
 export const run = async (req, res) => {
 	try {
@@ -25,7 +26,12 @@ async function getUnpaidInvoices() {
 	const podData = await getPodDataFromBQ();
 	const podMap = new Map();
 	for (const pod of podData) {
-		podMap.set(pod.invoice_number, pod.customer_pod);
+		const data = {
+			order_date: pod.order_date,
+			customer_pod: pod.customer_pod,
+			target_po_number: pod.target_po_number,
+		};
+		podMap.set(pod.invoice_number, data);
 	}
 	const mergedSproutsData = await mergeSheetDataWithPOD(
 		sheetData.sproutsData,
@@ -39,7 +45,7 @@ async function getUnpaidInvoices() {
 	const sproutsSheetInserter = sheetInserter({
 		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
 		outSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.sprouts,
-		outSheetRange: "A2:E",
+		outSheetRange: "A2:H",
 		wipePreviousData: true,
 	});
 
@@ -48,7 +54,7 @@ async function getUnpaidInvoices() {
 	const wholeFoodsSheetInserter = sheetInserter({
 		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
 		outSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.whole_foods,
-		outSheetRange: "A2",
+		outSheetRange: "A2:H",
 		wipePreviousData: true,
 	});
 
@@ -63,19 +69,19 @@ async function getDataFromArDashboard() {
 		inSheetID: SHEET_SCHEMAS.WHISHA_AR_DASHBOARD.prod_id,
 		inSheetName:
 			SHEET_SCHEMAS.WHISHA_AR_DASHBOARD.pages.ar_overdue_invoice_list_2025,
-		inSheetRange: "A6:M",
+		inSheetRange: "A6:W",
 	});
 
 	const overdueInvoiceData = await arSheetExtractor.run();
+	console.log(`Fetched ${overdueInvoiceData.length} rows`);
 
 	const filteredData = overdueInvoiceData.filter(
 		(row) =>
 			row.at(9) === "Unpaid" &&
-			(row.at(12) === "Sprouts" || row.at(12) === "Whole Foods") &&
-			row.at(16) !== "Accounting" &&
-			row.at(16) !== "Dispatch and Delivery Issues",
+			(row.at(12).includes("Sprouts") || row.at(12).includes("Whole Foods")) &&
+			row.at(17) !== "Accounting",
 	);
-	console.log(`Got rows: ${filteredData.length}`);
+	console.log(`After filter: ${filteredData.length}`);
 
 	let sproutsData = [];
 	let wholeFoodsData = [];
@@ -84,6 +90,7 @@ async function getDataFromArDashboard() {
 		const invoiceNumber = row.at(11);
 		const storeName = row.at(5);
 		const amount = row.at(7);
+		const date = excelDateToTimestamp(row.at(1)).slice(0, 10);
 
 		if (row.at(12) === "Sprouts") {
 			const storeNumber = storeName.split(" ").at(-1).split("#").at(-1);
@@ -94,6 +101,7 @@ async function getDataFromArDashboard() {
 
 			const formattedRow = {
 				id: invoiceNumber,
+				date: date,
 				email: sproutsEmail,
 				amount: amount,
 				storeName: storeName.split(":").at(-1),
@@ -102,12 +110,16 @@ async function getDataFromArDashboard() {
 		} else {
 			const formattedRow = {
 				id: invoiceNumber,
+				date: date,
 				email: storeName,
 				amount: amount,
 			};
 			wholeFoodsData.push(formattedRow);
 		}
 	}
+
+	console.log(sproutsData.length);
+	console.log(wholeFoodsData.length);
 
 	return { sproutsData: sproutsData, wholeFoodsData: wholeFoodsData };
 }
@@ -116,7 +128,7 @@ async function getPodDataFromBQ() {
 	try {
 		const bigquery = new BigQuery();
 		const query = `
-			SELECT invoice_number, customer_pod
+			SELECT invoice_number, customer_pod, order_date, target_po_number
 			FROM \`whishops.finance.pod_import\`
             WHERE LEFT(stop_id, 2) IN ('SP', 'WF')
 		`;
@@ -135,13 +147,17 @@ async function mergeSheetDataWithPOD(sheetData, podMap) {
 	let mergedData = [];
 
 	for (const row of sheetData) {
-		const customer_pod = podMap.get(`${row.id}`);
-		if (customer_pod) {
+		const rowPodData = podMap.get(`${row.id}`);
+		if (rowPodData) {
 			const mergedRow = {
 				...row,
-				customer_pod: `"${customer_pod}"`,
+				order_date: `${rowPodData.order_date.value}`,
+				customer_pod: `${rowPodData.customer_pod}`,
+				target_po_number: `${rowPodData.target_po_number}`,
 			};
 			mergedData.push(mergedRow);
+		} else {
+			mergedData.push(row);
 		}
 	}
 

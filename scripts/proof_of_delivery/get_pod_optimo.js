@@ -63,8 +63,8 @@ async function getPODOptimo() {
 	}
 
 	const resultWithHeaders = [headers, ...result];
-	await uploadToSheet(resultWithHeaders);
-	// await uploadToBigQuery(result);
+	// await uploadToSheet(resultWithHeaders);
+	await uploadToBigQuery(result);
 	console.log("Script run complete");
 }
 
@@ -398,7 +398,6 @@ function getCurrentAndTrailingDates() {
 		// 	start: startOf7thTrailingMonth.format(format),
 		// 	end: endOf7thTrailingMonth.format(format),
 		// },
-
 		// {
 		// 	start: startOf6thTrailingMonth.format(format),
 		// 	end: endOf6thTrailingMonth.format(format),
@@ -407,7 +406,6 @@ function getCurrentAndTrailingDates() {
 		// 	start: startOf5thTrailingMonth.format(format),
 		// 	end: endOf5thTrailingMonth.format(format),
 		// },
-
 		// {
 		// 	start: startOf4thTrailingMonth.format(format),
 		// 	end: endOf4thTrailingMonth.format(format),
@@ -416,7 +414,6 @@ function getCurrentAndTrailingDates() {
 		// 	start: startOf3rdTrailingMonth.format(format),
 		// 	end: endOf3rdTrailingMonth.format(format),
 		// },
-
 		{
 			start: startOf2ndTrailingMonth.format(format),
 			end: endOf2ndTrailingMonth.format(format),

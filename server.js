@@ -17,6 +17,8 @@ import * as stocktake_sync from "./scripts/stocktake_sync.js";
 import * as get_pod_optimo from "./scripts/proof_of_delivery/get_pod_optimo.js";
 import * as get_unpaid_invoices from "./scripts/proof_of_delivery/get_unpaid_invoices.js";
 import * as send_sprouts_emails from "./scripts/proof_of_delivery/send_sprouts_emails.js";
+import * as sync_invoice_date_cin7 from "./scripts/invoice_date/sync_invoice_date_cin7.js";
+import * as sync_master_store_list from "./scripts/psql/sync_master_store_list.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -87,6 +89,14 @@ app.get("/get_unpaid_invoices", (req, res) => {
 
 app.get("/send_sprouts_emails", (req, res) => {
 	send_sprouts_emails.run(req, res);
+});
+
+app.get("/sync_invoice_date_cin7", (req, res) => {
+	sync_invoice_date_cin7.run(req, res);
+});
+
+app.get("/sync_master_store_list", (req, res) => {
+	sync_master_store_list.run(req, res);
 });
 
 app.listen(PORT, () => {

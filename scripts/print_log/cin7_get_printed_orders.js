@@ -4,6 +4,7 @@ import { sheetInserter } from "../../util/sheet_inserter.js";
 import { BigQuery } from "@google-cloud/bigquery";
 import delay from "../../util/delay.js";
 import dayjs from "dayjs";
+import excelDateToTimestamp from "../../util/excel_date_to_timestamp.js";
 
 export const run = async (req, res) => {
 	try {
@@ -30,7 +31,7 @@ async function cin7GetPrintedOrders() {
 		const regionalSheetInserter = sheetInserter({
 			outSheetID: SHEET_SCHEMAS.PRINT_LOG_STAGING.prod_id,
 			outSheetName: key,
-			outSheetRange: "A2:Z",
+			outSheetRange: "A2:AD",
 			wipePreviousData: true,
 		});
 		regionalSheetInserter.run(regionalData[key]);
@@ -123,17 +124,18 @@ async function formatPrintedOrderJson(printedOrderJson) {
 	const date = dayjs();
 	const userMap = await getUsernameMapFromCin7();
 
-	for (const order of printedOrderJson) {
-		const cin7Stage = order.stage;
+	const dolMap = await getDolMap();
 
+	for (const order of printedOrderJson) {
 		const createdDate = dayjs(order.createdDate).format("MM/DD/YY");
 		const dispatchDate = dayjs(order.dispatchedDate).format("MM/DD/YY");
 		const createdBy = userMap.get(order.createdBy); // Each code references a name, need those
 		const invoiceNumber = `${order.invoiceNumber}`;
+		const dolData = dolMap.get(invoiceNumber);
 		const storeName = `${order.company}`;
 		const plTimestamp = date.format("HH:mm A");
-		const originalRep = `${order.trackingCode}`;
-		const currentRep = "";
+		const originalRep = `${order.trackingCode ?? ""}`;
+		const currentRep = dolData?.currentRep ?? "";
 		const warehouseNotes = "";
 		const orderAmount = order.total.toFixed(2);
 		const dispatchHistory = "";
@@ -156,6 +158,12 @@ async function formatPrintedOrderJson(printedOrderJson) {
 		const deliveryDate = dayjs(order.invoiceDate).format("MM/DD/YY"); // Switch to ETD later
 		const stopID = "";
 		const units = order.lineItems.reduce((acc, curr) => acc + curr.qty, 0);
+		const bo = "";
+		const trackingCode = "";
+		const possibleDuplicate = "";
+		const doshitNotes = `${dolData?.orderNotes ?? ""}`;
+		const doshitDispatchDate = `${dolData?.dispatchDate === "NaN" ? "" : dolData?.dispatchDate}`;
+		const region = "";
 
 		result.push([
 			createdDate,
@@ -179,6 +187,12 @@ async function formatPrintedOrderJson(printedOrderJson) {
 			deliveryDate,
 			stopID,
 			units,
+			bo,
+			trackingCode,
+			possibleDuplicate,
+			doshitNotes,
+			doshitDispatchDate,
+			region,
 		]);
 	}
 
@@ -209,12 +223,9 @@ async function dividePrintedOrdersByRegion(formattedPrintedOrderJson) {
 			region: row.region,
 			stop_id: row.stop_id,
 		});
-		// masterStoreMap.set(row.cin7_name.split("(").at(0).trim(), row.region);
-		// masterStoreMap.set(row.cin7_name.replace(/\s/g, ""), row.region);
 	}
 
 	for (const row of formattedPrintedOrderJson) {
-		// const storeName = row.at(4).split("(").at(0).trim();
 		const storeName = row.at(4).trim();
 		const storeData = masterStoreMap.get(storeName);
 		if (storeData?.region && regions.hasOwnProperty(storeData.region)) {
@@ -222,9 +233,6 @@ async function dividePrintedOrdersByRegion(formattedPrintedOrderJson) {
 			regions[storeData.region].push(row);
 		} else {
 			console.log(`Missing in Master Store List: ${storeName}`);
-			// console.warn(
-			// 	`Order for store ${storeName} could not be mapped to a valid region. Region value found: ${region}`,
-			// );
 			regions.UNKNOWN.push(row);
 		}
 	}
@@ -286,6 +294,46 @@ async function getMasterStoreListFromBQ() {
 		console.error("Error during BigQuery API call:", error);
 		throw error;
 	}
+}
+
+async function getDolMap() {
+	const dolSheetExtractor = sheetExtractor({
+		functionName: "Cin7 Status Update",
+		inSheetID: SHEET_SCHEMAS.WHISHACCEL_NORCAL_ORDER_MANAGEMENT.prod_id,
+		inSheetName:
+			SHEET_SCHEMAS.WHISHACCEL_NORCAL_ORDER_MANAGEMENT.pages
+				.rtg_direct_order_log,
+		inSheetRange: "A1:AB",
+	});
+
+	const directOrderLogData = await dolSheetExtractor.run();
+
+	console.log(`Got rows from DOL: ${directOrderLogData.length}`);
+	// row.at(21) is Dispatch Date, row.at(11) is Cin7 Order ID
+
+	const filteredData = directOrderLogData.filter((row) => row.at(11) !== "");
+	console.log(`Found items: ${filteredData.length}`);
+
+	const result = new Map();
+
+	for (const row of filteredData) {
+		const invoiceNumber = `${row.at(2)}`;
+		const orderNotes = row.at(7);
+		const currentRep = row.at(16);
+		const dispatchDate = excelDateToTimestamp(
+			isNaN(row.at(21)) ? 0 : row.at(21),
+		);
+
+		const data = {
+			orderNotes: orderNotes,
+			currentRep: currentRep,
+			dispatchDate: dispatchDate,
+		};
+
+		result.set(invoiceNumber, data);
+	}
+
+	return result;
 }
 
 // Mismarked in Cin7
