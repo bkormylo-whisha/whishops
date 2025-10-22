@@ -79,7 +79,8 @@ async function getDataFromArDashboard() {
 		(row) =>
 			row.at(9) === "Unpaid" &&
 			(row.at(12).includes("Sprouts") || row.at(12).includes("Whole Foods")) &&
-			row.at(17) !== "Accounting",
+			row.at(17) !== "Accounting" &&
+			row.at(17) !== "Dispatch and Delivery Issues",
 	);
 	console.log(`After filter: ${filteredData.length}`);
 

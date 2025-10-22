@@ -66,7 +66,6 @@ async function getMasterStoreList() {
 async function uploadToDB(data) {
 	const psql = await psqlHelper();
 	await psql.establishConnection();
-	await psql.closeConnection();
 
 	const fullTableName = `${projectId}.${datasetId}.${tableId}`;
 	const query = `TRUNCATE TABLE \`${fullTableName}\``;
@@ -137,4 +136,6 @@ async function uploadToDB(data) {
 			console.error(`Error inserting batch at index ${i}:`, e);
 		}
 	}
+
+	await psql.closeConnection();
 }

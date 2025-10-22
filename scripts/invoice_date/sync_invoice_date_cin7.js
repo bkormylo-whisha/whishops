@@ -6,9 +6,6 @@ import dayjs from "dayjs";
 import mailSender from "../../util/mail_sender.js";
 import * as fs from "fs";
 
-// NOT STARTED YET
-// If column Z is not YES, overwrite the invoice date with the scheduleded invoice date
-
 export const run = async (req, res) => {
 	try {
 		await cin7InvoiceDateUpdate();
@@ -31,23 +28,23 @@ async function cin7InvoiceDateUpdate() {
 		return;
 	}
 
-	const filePath = writeCsvData(directOrderLogData, formattedDate);
+	// const filePath = writeCsvData(directOrderLogData, formattedDate);
 
-	const mailer = await mailSender();
-	await mailer.send({
-		recipients: [
-			"bkormylo@whisha.com",
-			// "wsinks@whisha.com",
-			// "dlindstrom@whisha.com",
-			"tcarlozzi@whisha.com",
-		],
-		attachmentName: filePath.split("/").at(-1),
-		attachmentPath: filePath,
-		subject: "Orders to update in Cin7",
-		bodyText: "",
-	});
+	// const mailer = await mailSender();
+	// await mailer.send({
+	// 	recipients: [
+	// 		"bkormylo@whisha.com",
+	// 		// "wsinks@whisha.com",
+	// 		// "dlindstrom@whisha.com",
+	// 		// "tcarlozzi@whisha.com",
+	// 	],
+	// 	attachmentName: filePath.split("/").at(-1),
+	// 	attachmentPath: filePath,
+	// 	subject: "Orders to update in Cin7",
+	// 	bodyText: "",
+	// });
 
-	// await insertUpdatedOrderDataCin7(directOrderLogData);
+	await insertUpdatedOrderDataCin7(directOrderLogData);
 }
 
 async function getDataFromDOL() {
@@ -73,7 +70,7 @@ async function getDataFromDOL() {
 	for (const row of filteredData) {
 		const orderId = row.at(11);
 		const invoiceDate = excelDateToTimestamp(row.at(22));
-		const scheduledInvoiceDate = excelDateToTimestamp(row.at(23));
+		let scheduledInvoiceDate = excelDateToTimestamp(row.at(23));
 		const deliveredOrComplete = row.at(25);
 
 		if (Number.isNaN(invoiceDate) || Number.isNaN(scheduledInvoiceDate)) {
@@ -87,6 +84,9 @@ async function getDataFromDOL() {
 		if (deliveredOrComplete === "YES") {
 			continue;
 		}
+
+		scheduledInvoiceDate =
+			`${scheduledInvoiceDate}`.slice(0, 10) + "T16:00:00.000Z";
 
 		const formattedRow = {
 			id: orderId,
@@ -104,11 +104,12 @@ async function insertUpdatedOrderDataCin7(updatedRows) {
 	const username = process.env.CIN7_USERNAME;
 	const password = process.env.CIN7_PASSWORD;
 	const put_endpoint = "v1/SalesOrders";
-	const BATCH_SIZE = 250;
+	const BATCH_SIZE = 50;
 
 	console.log("Uploading to Cin7");
+	const allResults = [];
 
-	for (let i = 0; i <= updatedRows.length; i += BATCH_SIZE) {
+	for (let i = 0; i < updatedRows.length; i += BATCH_SIZE) {
 		const batch = updatedRows.slice(i, i + BATCH_SIZE);
 
 		const putOptions = {
@@ -119,10 +120,15 @@ async function insertUpdatedOrderDataCin7(updatedRows) {
 			},
 			body: JSON.stringify(batch),
 		};
-		const putResponse = await fetch(`${url}${put_endpoint}`, putOptions);
-		const response = await putResponse.json();
-		await delay(1000);
-		console.log(response);
+		try {
+			await delay(1000);
+			const putResponse = await fetch(`${url}${put_endpoint}`, putOptions);
+			const response = await putResponse.json();
+			allResults.push(response);
+		} catch (e) {
+			console.error(`Batch starting at index ${i} failed:`, error.message);
+			allResults.push({ error: error.message, index: i });
+		}
 	}
 
 	console.log(`Completed Upload of ${updatedRows.length} items`);
