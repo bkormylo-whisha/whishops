@@ -1,11 +1,9 @@
-import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
-import { sheetExtractor } from "../../util/sheet_extractor.js";
 import delay from "../../util/delay.js";
-import convertJsonToCsv from "../../util/convert_json_to_csv.js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
-import mailSender from "../../util/mail_sender.js";
-import * as fs from "fs";
+import { sheetExtractor } from "../../util/sheet_extractor.js";
+import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
+import { sheetInserter } from "../../util/sheet_inserter.js";
 
 dayjs.extend(utc);
 
@@ -32,7 +30,9 @@ async function flipDraftsCin7() {
 		return;
 	}
 
-	// await insertUpdatedOrderDataCin7(formattedData);
+	if (formattedData.length > 0) {
+		await insertUpdatedOrderDataCin7(formattedData);
+	}
 }
 
 async function getDraftOrders() {
@@ -87,15 +87,13 @@ async function getDraftOrders() {
 
 async function filterAndAdjustData(printedOrderJson) {
 	let result = [];
-
-	// const now = dayjs().add(7, "hour").toISOString(); // Added hours to account for Cin7 server location, ensures correct date
 	const now = dayjs().utc().add(1, "day").toISOString();
 
 	for (const order of printedOrderJson) {
 		if (!order.source.includes("POS") || order.total < 100.0) {
 			continue;
 		}
-		const adjustedOrder = { ...order, invoiceDate: now };
+		const adjustedOrder = { id: order.id, invoiceDate: now };
 		result.push(adjustedOrder);
 	}
 
@@ -134,22 +132,36 @@ async function insertUpdatedOrderDataCin7(updatedRows) {
 		}
 	}
 
-	console.log(`Completed Upload of ${updatedRows.length} items`);
+	const flippedOrderCount = updatedRows.length;
+	console.log(`Completed Upload of ${flippedOrderCount} items`);
 
-	// return response;
+	logFlippedOrders(flippedOrderCount);
 }
 
-function writeCsvData(jsonData, formattedDate) {
-	const csvData = convertJsonToCsv(jsonData);
-	const fileName = `whisha${formattedDate}_sales_orders.csv`;
+async function logFlippedOrders(flipCount) {
+	let ordersFlippedCount = 0;
+	const logExtractor = sheetExtractor({
+		functionName: "Get Flipped Order Count",
+		inSheetID: SHEET_SCHEMAS.WHISHOPS_LOGS.prod_id,
+		inSheetName: SHEET_SCHEMAS.WHISHOPS_LOGS.pages.dashboard,
+		inSheetRange: "A2",
+	});
+	const flippedOrders = await logExtractor.run();
 
-	fs.writeFile("./downloads/" + fileName, csvData, (err) => {
-		if (err) {
-			console.error("Error writing file:", err);
-			return;
-		}
-		console.log("File written successfully!");
+	console.log(flippedOrders);
+
+	ordersFlippedCount += Number(flippedOrders[0][0]);
+	ordersFlippedCount += flipCount;
+
+	console.log(ordersFlippedCount);
+
+	const logInserter = sheetInserter({
+		functionName: "Update Flipped Order Count",
+		outSheetID: SHEET_SCHEMAS.WHISHOPS_LOGS.prod_id,
+		outSheetName: SHEET_SCHEMAS.WHISHOPS_LOGS.pages.dashboard,
+		outSheetRange: "A2",
+		wipePreviousData: true,
 	});
 
-	return `./downloads/${fileName}`;
+	await logInserter.run([[ordersFlippedCount]]);
 }

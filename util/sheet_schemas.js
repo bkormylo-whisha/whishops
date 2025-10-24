@@ -294,6 +294,13 @@ export const SHEET_SCHEMAS = {
 			whole_foods: "Whole Foods",
 		},
 	},
+
+	WHISHOPS_LOGS: {
+		prod_id: "10wqT2aGlVrZcGwHTOuJ6bwr3BHbevm1Fiv0ZHTRpgm4",
+		pages: {
+			dashboard: "Dashboard",
+		},
+	},
 };
 
 // export { SHEET_SCHEMAS };

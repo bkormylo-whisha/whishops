@@ -65,7 +65,7 @@ export function sheetInserter(params) {
 			throw e;
 		}
 
-		console.log("Script run complete");
+		console.log("Sheet insertion complete");
 	}
 
 	return Object.freeze({
