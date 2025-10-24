@@ -1,5 +1,3 @@
-import { google } from "googleapis";
-import { GoogleAuth } from "google-auth-library";
 import { BigQuery } from "@google-cloud/bigquery";
 import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
 import { logRuntimeFor } from "../util/log_runtime_for.js";

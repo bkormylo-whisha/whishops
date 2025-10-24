@@ -24,14 +24,17 @@ export default async function psqlHelper() {
 		pool = new Pool(dbConfig);
 	};
 
-	const runQuery = async (query) => {
+	const runQuery = async (query, values) => {
 		try {
 			const client = await pool.connect();
-			const result = await client.query(query);
-			console.log(
-				"Successfully connected to Cloud SQL PostgreSQL:",
-				result.rows[0].now,
-			);
+			let result;
+			if (values) {
+				result = await client.query(query, values);
+			} else {
+				result = await client.query(query);
+			}
+
+			console.log("Successfully connected to Cloud SQL PostgreSQL");
 			client.release(); // Release the client back to the pool
 		} catch (err) {
 			console.error("Error connecting to Cloud SQL PostgreSQL:", err);
@@ -45,6 +48,7 @@ export default async function psqlHelper() {
 
 	return Object.freeze({
 		establishConnection: establishConnection,
+		runQuery: runQuery,
 		closeConnection: closeConnection,
 	});
 }

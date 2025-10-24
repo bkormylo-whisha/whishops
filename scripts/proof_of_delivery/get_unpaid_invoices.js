@@ -95,10 +95,7 @@ async function getDataFromArDashboard() {
 
 		if (row.at(12) === "Sprouts") {
 			const storeNumber = storeName.split(" ").at(-1).split("#").at(-1);
-			const storeNumberLength = storeNumber.length;
-			const sproutsEmail = `st${storeNumberLength === 2 || storeNumberLength === 1 ? "0" : ""}${
-				storeNumberLength === 1 ? "0" : ""
-			}${storeNumber}receiver@sprouts.com`;
+			const sproutsEmail = `st${storeNumber}receiver@sprouts.com`;
 
 			const formattedRow = {
 				id: invoiceNumber,

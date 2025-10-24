@@ -15,7 +15,7 @@ async function syncNorcalDirectOrderLog() {
 	const norcalDolSheetCoordinator = sheetCoordinator({
 		functionName: "Sync Norcal Direct Order Log",
 
-		inSheetID: SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.prod_id_q4,
+		inSheetID: SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.prod_id,
 		inSheetName:
 			SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.pages.rtg_direct_order_log,
 		inSheetRange: "A1:AE",

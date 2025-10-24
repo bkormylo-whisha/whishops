@@ -19,6 +19,8 @@ import * as get_unpaid_invoices from "./scripts/proof_of_delivery/get_unpaid_inv
 import * as send_sprouts_emails from "./scripts/proof_of_delivery/send_sprouts_emails.js";
 import * as sync_invoice_date_cin7 from "./scripts/invoice_date/sync_invoice_date_cin7.js";
 import * as sync_master_store_list from "./scripts/psql/sync_master_store_list.js";
+import * as get_orders_cin7 from "./scripts/psql/get_orders_cin7.js";
+import * as flip_drafts_cin7 from "./scripts/flip_drafts/flip_drafts_cin7.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -97,6 +99,14 @@ app.get("/sync_invoice_date_cin7", (req, res) => {
 
 app.get("/sync_master_store_list", (req, res) => {
 	sync_master_store_list.run(req, res);
+});
+
+app.get("/get_orders_cin7", (req, res) => {
+	get_orders_cin7.run(req, res);
+});
+
+app.get("/flip_drafts_cin7", (req, res) => {
+	flip_drafts_cin7.run(req, res);
 });
 
 app.listen(PORT, () => {

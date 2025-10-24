@@ -1,9 +1,9 @@
-import { google } from "googleapis";
-import getAuthenticatedClient from "../../util/google_auth.js";
-import { BigQuery } from "@google-cloud/bigquery";
 import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { logRuntimeFor } from "../../util/log_runtime_for.js";
-import psqlHelper from "../../util/connect_to_psql.js";
+import psqlHelper from "../../util/psql_helper.js";
+import { sheetExtractor } from "../../util/sheet_extractor.js";
+import dayjs from "dayjs";
+import excelDateToTimestamp from "../../util/excel_date_to_timestamp.js";
 
 export const run = async (req, res) => {
 	console.log("Running Sync Master Store List PSQL");
@@ -16,13 +16,6 @@ export const run = async (req, res) => {
 	}
 };
 
-// The goal will be to take past order completion at each store,
-// then average the time it has taken for the last 10 stops at that store
-// Get Order Completion to update the master store list
-// Get Orders using the orderID from Order completion,
-// Create an order completion log in BQ for the last month or so
-// Pull from that order completion log to get average stop lengths
-
 async function syncMasterStoreListPsql() {
 	const masterStoreListData = await getMasterStoreList();
 
@@ -31,34 +24,17 @@ async function syncMasterStoreListPsql() {
 }
 
 async function getMasterStoreList() {
-	const auth = await getAuthenticatedClient();
-	const sheets = google.sheets({ version: "v4", auth });
-
-	const masterStoreListID = SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.prod_id;
-	const masterStoreListName =
-		SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.pages.master_store_list;
-	const masterStoreListRange = "A5:AC";
+	const mslExtractor = sheetExtractor({
+		functionName: "Sync Master Store List",
+		inSheetID: SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.prod_id,
+		inSheetName:
+			SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.pages.master_store_list,
+		inSheetRange: "A5:AC",
+	});
 
 	console.log("Getting initial data from Master Store List");
 	let masterStoreListData = [[]];
-
-	try {
-		const getResponse = await sheets.spreadsheets.values.get({
-			spreadsheetId: masterStoreListID,
-			range: `${masterStoreListName}!${masterStoreListRange}`,
-			valueRenderOption: "FORMATTED_VALUE",
-		});
-
-		masterStoreListData = getResponse.data.values;
-		if (!masterStoreListData) {
-			masterStoreListData = [[]];
-		}
-
-		console.log("Retrieved data successfully");
-	} catch (e) {
-		console.error("Error during sheet operation:", e);
-		throw e;
-	}
+	masterStoreListData = await mslExtractor.run();
 
 	return masterStoreListData;
 }
@@ -66,44 +42,26 @@ async function getMasterStoreList() {
 async function uploadToDB(data) {
 	const psql = await psqlHelper();
 	await psql.establishConnection();
-
-	const fullTableName = `${projectId}.${datasetId}.${tableId}`;
-	const query = `TRUNCATE TABLE \`${fullTableName}\``;
-	const options = {
-		query: query,
-		location: "us-west1",
-	};
-
-	try {
-		const [job] = await bigquery.createQueryJob(options);
-		console.log(`Table ${fullTableName} successfully truncated.`);
-		await job.getQueryResults();
-	} catch (e) {
-		console.error(`Error truncating table ${fullTableName}:`, e);
-		throw e;
-	}
-
-	var sqlheaders = [
+	const table = "master_store_list";
+	const sqlheaders = [
 		"stop_id",
 		"store",
 		"address",
 		"city",
 		"state",
 		"zip",
-		"stop_id_2",
-		"start",
+		"start_time",
 		"lunch_start",
 		"lunch_end",
-		"end",
+		"end_time",
 		"saturday_hours_and_notes",
 		"action_flag",
-		"id",
+		"store_abbr",
 		"banner",
-		"stop_id_3",
 		"region",
 		"do_not_sell_list",
 		"sold_here",
-		"full",
+		"full_stop",
 		"direct",
 		"sprint",
 		"supply",
@@ -115,27 +73,143 @@ async function uploadToDB(data) {
 		"ship_eligible",
 	];
 
-	const batchSize = 8000;
-	for (let i = 0; i < data.length; i += batchSize) {
-		const rawBatch = data.slice(i, i + batchSize);
+	const batchSize = 100;
+	const totalColumns = sqlheaders.length;
 
-		const processedBatch = rawBatch.map((row) => {
-			const obj = {};
-			sqlheaders.forEach((header, j) => {
-				obj[header] = `${row[j] ?? ""}`;
-			});
-			return obj;
-		});
+	const paddedData = data.map((row) => {
+		while (row.length < totalColumns) {
+			row.push(null);
+		}
+		return row;
+	});
+
+	const dataToProcess = paddedData;
+	const updateAssignments = sqlheaders
+		.filter((header) => header !== "stop_id")
+		.map((header) => `${header} = EXCLUDED.${header}`)
+		.join(", \n");
+
+	for (let i = 0; i < dataToProcess.length; i += batchSize) {
+		const rawBatch = dataToProcess.slice(i, i + batchSize);
+
+		const allValues = [];
+		const rowPlaceholders = [];
+		let localValueIndex = 0;
+
+		for (const storeData of rawBatch) {
+			if (
+				!storeData.at(0) ||
+				storeData.at(0) === "" ||
+				storeData.at(0) === "NA"
+			) {
+				continue;
+			}
+
+			if (storeData.at(23) === "" || storeData.at(23) === "Not in Cin7") {
+				continue;
+			}
+
+			const cleanedRow = [
+				`${storeData.at(0)}`,
+				...storeData.slice(1, 6),
+				...storeData.slice(7, 11).map((element) => {
+					const numericValue = Number(element);
+					const result =
+						!Number.isNaN(numericValue) && numericValue !== 0
+							? convertDecimalToTime(element)
+							: null;
+					return result;
+				}),
+				...storeData.slice(11, 15),
+				...storeData.slice(16, 19),
+				...storeData.slice(19, 23).map((element) => {
+					const numericValue = Number(element); // Try to convert it
+					return Number.isNaN(numericValue) ? 0 : numericValue;
+				}),
+				storeData.at(23),
+				(() => {
+					const rawValue = `${storeData.at(24)}`;
+					if (
+						!rawValue ||
+						rawValue === "" ||
+						rawValue === "NA" ||
+						rawValue.toLowerCase() === "null"
+					) {
+						return null;
+					}
+
+					const dateObj = dayjs(
+						excelDateToTimestamp(Number(rawValue)),
+					).toDate();
+					if (Number.isNaN(dateObj.getTime())) {
+						console.warn(
+							`Invalid date value found: ${rawValue}. Inserting NULL.`,
+						);
+						return null;
+					}
+
+					return dateObj;
+				})(),
+				...storeData.slice(25, 27).map((element) => element === "Yes"),
+				storeData.at(27),
+				storeData.at(28) ? storeData.at(28) : null,
+			];
+
+			const placeholders = [];
+			for (let j = 0; j < totalColumns; j++) {
+				localValueIndex++;
+				placeholders.push(`$${localValueIndex}`);
+			}
+			if (cleanedRow.length !== totalColumns) {
+				console.log(storeData);
+				console.error(
+					`Row data is incomplete! Expected ${totalColumns}, got ${cleanedRow.length}`,
+				);
+			}
+
+			rowPlaceholders.push(`(${placeholders.join(", ")})`);
+			allValues.push(...cleanedRow);
+		}
+
+		if (rowPlaceholders.length === 0) {
+			console.log(`Skipping batch at index ${i}: No valid rows found.`);
+			continue;
+		}
+
+		let insertQuery = `INSERT INTO ${table} (${sqlheaders.join(", ")}) 
+            VALUES ${rowPlaceholders.join(", ")} 
+            ON CONFLICT (stop_id) 
+            DO UPDATE SET 
+                ${updateAssignments}`;
 
 		try {
-			await bigquery.dataset(datasetId).table(tableId).insert(processedBatch);
+			await psql.runQuery(insertQuery, allValues);
+
 			console.log(
-				`Successfully inserted a batch of ${processedBatch.length} rows.`,
+				`Successfully inserted a batch of ${rawBatch.length} rows using ${allValues.length} parameters.`,
 			);
 		} catch (e) {
 			console.error(`Error inserting batch at index ${i}:`, e);
+			console.error("Failing Query:", insertQuery);
+			console.error("Failing Values (first 10):", allValues.slice(0, 10));
 		}
 	}
 
 	await psql.closeConnection();
 }
+
+function convertDecimalToTime(decimalTime) {
+	const totalSeconds = decimalTime * 24 * 60 * 60;
+	const hours = Math.floor(totalSeconds / 3600);
+	const minutes = Math.floor((totalSeconds % 3600) / 60);
+	const seconds = Math.round(totalSeconds % 60);
+	const formattedHours = String(hours).padStart(2, "0");
+	const formattedMinutes = String(minutes).padStart(2, "0");
+	const formattedSeconds = String(seconds).padStart(2, "0");
+
+	return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+}
+
+// Duplicates in MSL
+// Vons - 2049
+// Safeway - 1826

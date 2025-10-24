@@ -27,7 +27,11 @@ async function runWholeFoodsUpload() {
 	const mailer = await mailSender();
 	await mailer.send({
 		recipients: ["bkormylo@whisha.com"],
-		// recipients: ["bkormylo@whisha.com", "wsinks@whisha.com"],
+		// recipients: [
+		// 	"bkormylo@whisha.com",
+		// 	"wsinks@whisha.com",
+		// 	"dlindstrom@whisha.com",
+		// ],
 		attachmentName: fileName,
 		attachmentPath: filePath,
 		subject: "Whole Foods Upload",
