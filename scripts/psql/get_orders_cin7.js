@@ -137,7 +137,7 @@ async function uploadToDB(data) {
 
 		const allValues = [];
 		const rowPlaceholders = [];
-		let localValueIndex = 1;
+		let localValueIndex = 0;
 
 		for (const orderData of rawBatch) {
 			const placeholders = [];
@@ -175,4 +175,5 @@ async function uploadToDB(data) {
 	}
 
 	await psql.closeConnection();
+	return;
 }

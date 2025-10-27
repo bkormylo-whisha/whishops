@@ -26,12 +26,12 @@ async function runWholeFoodsUpload() {
 
 	const mailer = await mailSender();
 	await mailer.send({
-		recipients: ["bkormylo@whisha.com"],
-		// recipients: [
-		// 	"bkormylo@whisha.com",
-		// 	"wsinks@whisha.com",
-		// 	"dlindstrom@whisha.com",
-		// ],
+		// recipients: ["bkormylo@whisha.com"],
+		recipients: [
+			"bkormylo@whisha.com",
+			"wsinks@whisha.com",
+			"dlindstrom@whisha.com",
+		],
 		attachmentName: fileName,
 		attachmentPath: filePath,
 		subject: "Whole Foods Upload",
@@ -147,9 +147,9 @@ async function formatCin7Data(data) {
 				"Processed By": salesOrder.processedBy ?? "",
 				Branch: "",
 				"Branch ID": salesOrder.branchId ?? "",
-				"Internal Comments": `"${internalComments}"`,
+				"Internal Comments": ``,
 				"Delivery Instructions": `"${deliveryInstructions}"`,
-				"Tracking Code": `${salesOrder.trackingCode ?? ""}`,
+				"Tracking Code": ``,
 				"Project Name": salesOrder.projectName ?? "",
 				Channel: "", // Not a field
 				"Payment Type": "", // Not a field

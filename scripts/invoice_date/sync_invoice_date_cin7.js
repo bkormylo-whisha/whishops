@@ -104,7 +104,7 @@ async function insertUpdatedOrderDataCin7(updatedRows) {
 	const username = process.env.CIN7_USERNAME;
 	const password = process.env.CIN7_PASSWORD;
 	const put_endpoint = "v1/SalesOrders";
-	const BATCH_SIZE = 50;
+	const BATCH_SIZE = 100;
 
 	console.log("Uploading to Cin7");
 	const allResults = [];

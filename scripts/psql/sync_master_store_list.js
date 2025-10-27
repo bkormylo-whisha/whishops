@@ -16,10 +16,41 @@ export const run = async (req, res) => {
 	}
 };
 
+const sqlheaders = [
+	"stop_id",
+	"store",
+	"address",
+	"city",
+	"state",
+	"zip",
+	"start_time",
+	"lunch_start",
+	"lunch_end",
+	"end_time",
+	"saturday_hours_and_notes",
+	"action_flag",
+	"store_abbr",
+	"banner",
+	"region",
+	"do_not_sell_list",
+	"sold_here",
+	"full_stop",
+	"direct",
+	"sprint",
+	"supply",
+	"cin7_name",
+	"last_visit",
+	"on_gs",
+	"on_fss",
+	"address_full",
+	"ship_eligible",
+];
+
 async function syncMasterStoreListPsql() {
 	const masterStoreListData = await getMasterStoreList();
+	const formattedData = await formatAndCleanData(masterStoreListData);
 
-	await uploadToDB(masterStoreListData);
+	await uploadToDB(formattedData);
 	console.log("Script run complete");
 }
 
@@ -39,132 +70,78 @@ async function getMasterStoreList() {
 	return masterStoreListData;
 }
 
-async function uploadToDB(data) {
+async function formatAndCleanData(data) {
+	const result = [];
+	for (const row of data) {
+		if (!row.at(0) || row.at(0) === "" || row.at(0) === "NA") {
+			continue;
+		}
+
+		if (row.at(23) === "" || row.at(23) === "Not in Cin7") {
+			continue;
+		}
+
+		const rowObj = {
+			stop_id: row.at(0),
+			store: row.at(1),
+			address: row.at(2),
+			city: row.at(3),
+			state: row.at(4),
+			zip: `${row.at(5)}`,
+			start_time: convertDecimalToTime(row.at(7)),
+			lunch_start: convertDecimalToTime(row.at(8)),
+			lunch_end: convertDecimalToTime(row.at(9)),
+			end_time: convertDecimalToTime(row.at(10)),
+			saturday_hours_and_notes: row.at(11),
+			action_flag: row.at(12),
+			store_abbr: row.at(13),
+			banner: row.at(14),
+			region: row.at(16),
+			do_not_sell_list: row.at(17),
+			sold_here: row.at(18),
+			full_stop: ensureNumber(row.at(19)),
+			direct: ensureNumber(row.at(20)),
+			sprint: ensureNumber(row.at(21)),
+			supply: ensureNumber(row.at(22)),
+			cin7_name: row.at(23),
+			last_visit: formatExcelDate(row.at(24)),
+			on_gs: row.at(25) === "Yes",
+			on_fss: row.at(26) === "Yes",
+			address_full: row.at(27),
+			ship_eligible: row.at(28),
+		};
+
+		result.push(Object.values(rowObj));
+	}
+
+	return result;
+}
+
+async function uploadToDB(dataToProcess) {
 	const psql = await psqlHelper();
 	await psql.establishConnection();
 	const table = "master_store_list";
-	const sqlheaders = [
-		"stop_id",
-		"store",
-		"address",
-		"city",
-		"state",
-		"zip",
-		"start_time",
-		"lunch_start",
-		"lunch_end",
-		"end_time",
-		"saturday_hours_and_notes",
-		"action_flag",
-		"store_abbr",
-		"banner",
-		"region",
-		"do_not_sell_list",
-		"sold_here",
-		"full_stop",
-		"direct",
-		"sprint",
-		"supply",
-		"cin7_name",
-		"last_visit",
-		"on_gs",
-		"on_fss",
-		"address_full",
-		"ship_eligible",
-	];
 
 	const batchSize = 100;
 	const totalColumns = sqlheaders.length;
 
-	const paddedData = data.map((row) => {
-		while (row.length < totalColumns) {
-			row.push(null);
-		}
-		return row;
-	});
-
-	const dataToProcess = paddedData;
 	const updateAssignments = sqlheaders
 		.filter((header) => header !== "stop_id")
 		.map((header) => `${header} = EXCLUDED.${header}`)
 		.join(", \n");
 
 	for (let i = 0; i < dataToProcess.length; i += batchSize) {
-		const rawBatch = dataToProcess.slice(i, i + batchSize);
+		const batch = dataToProcess.slice(i, i + batchSize);
 
 		const allValues = [];
 		const rowPlaceholders = [];
 		let localValueIndex = 0;
 
-		for (const storeData of rawBatch) {
-			if (
-				!storeData.at(0) ||
-				storeData.at(0) === "" ||
-				storeData.at(0) === "NA"
-			) {
-				continue;
-			}
-
-			if (storeData.at(23) === "" || storeData.at(23) === "Not in Cin7") {
-				continue;
-			}
-
-			const cleanedRow = [
-				`${storeData.at(0)}`,
-				...storeData.slice(1, 6),
-				...storeData.slice(7, 11).map((element) => {
-					const numericValue = Number(element);
-					const result =
-						!Number.isNaN(numericValue) && numericValue !== 0
-							? convertDecimalToTime(element)
-							: null;
-					return result;
-				}),
-				...storeData.slice(11, 15),
-				...storeData.slice(16, 19),
-				...storeData.slice(19, 23).map((element) => {
-					const numericValue = Number(element); // Try to convert it
-					return Number.isNaN(numericValue) ? 0 : numericValue;
-				}),
-				storeData.at(23),
-				(() => {
-					const rawValue = `${storeData.at(24)}`;
-					if (
-						!rawValue ||
-						rawValue === "" ||
-						rawValue === "NA" ||
-						rawValue.toLowerCase() === "null"
-					) {
-						return null;
-					}
-
-					const dateObj = dayjs(
-						excelDateToTimestamp(Number(rawValue)),
-					).toDate();
-					if (Number.isNaN(dateObj.getTime())) {
-						console.warn(
-							`Invalid date value found: ${rawValue}. Inserting NULL.`,
-						);
-						return null;
-					}
-
-					return dateObj;
-				})(),
-				...storeData.slice(25, 27).map((element) => element === "Yes"),
-				storeData.at(27),
-				storeData.at(28) ? storeData.at(28) : null,
-			];
-
+		for (const cleanedRow of batch) {
 			const placeholders = [];
 			for (let j = 0; j < totalColumns; j++) {
 				localValueIndex++;
 				placeholders.push(`$${localValueIndex}`);
-			}
-			if (cleanedRow.length !== totalColumns) {
-				console.log(storeData);
-				console.error(
-					`Row data is incomplete! Expected ${totalColumns}, got ${cleanedRow.length}`,
-				);
 			}
 
 			rowPlaceholders.push(`(${placeholders.join(", ")})`);
@@ -186,7 +163,7 @@ async function uploadToDB(data) {
 			await psql.runQuery(insertQuery, allValues);
 
 			console.log(
-				`Successfully inserted a batch of ${rawBatch.length} rows using ${allValues.length} parameters.`,
+				`Successfully inserted a batch of ${batch.length} rows using ${allValues.length} parameters.`,
 			);
 		} catch (e) {
 			console.error(`Error inserting batch at index ${i}:`, e);
@@ -198,7 +175,22 @@ async function uploadToDB(data) {
 	await psql.closeConnection();
 }
 
+function ensureNumber(inputValue) {
+	const numericValue = Number(inputValue);
+
+	if (Number.isNaN(numericValue)) {
+		return 0;
+	} else {
+		return numericValue;
+	}
+}
+
 function convertDecimalToTime(decimalTime) {
+	const numericValue = Number(decimalTime);
+	if (Number.isNaN(numericValue) && numericValue !== 0) {
+		return null;
+	}
+
 	const totalSeconds = decimalTime * 24 * 60 * 60;
 	const hours = Math.floor(totalSeconds / 3600);
 	const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -210,6 +202,30 @@ function convertDecimalToTime(decimalTime) {
 	return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
 }
 
-// Duplicates in MSL
-// Vons - 2049
-// Safeway - 1826
+function formatExcelDate(date) {
+	const rawValue = `${date}`;
+	if (
+		!rawValue ||
+		rawValue === "" ||
+		rawValue === "NA" ||
+		rawValue.toLowerCase() === "null"
+	) {
+		return null;
+	}
+
+	const dateObj = dayjs(excelDateToTimestamp(Number(rawValue))).toDate();
+	if (Number.isNaN(dateObj.getTime())) {
+		return null;
+	}
+
+	return dateObj;
+}
+
+// Duplicate Cin7 Name, separate store name
+// Ann's Health Food Center & Market - Zang Blvd
+// Samples - Mollie Stones (Should be Samples - Mother's Market but there are two)
+// Pachamama Coffee Distributors
+// Cultivar Coffee Roasting Co.
+
+// MSL Changes
+// Ann's Health Food Center & Market - Zang Blvd (DUPLICATE changed to NOT IN CIN7)

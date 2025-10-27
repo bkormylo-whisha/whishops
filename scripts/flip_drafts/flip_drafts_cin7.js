@@ -1,9 +1,9 @@
 import delay from "../../util/delay.js";
+import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
+import { sheetExtractor } from "../../util/sheet_extractor.js";
+import { sheetInserter } from "../../util/sheet_inserter.js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
-import { sheetExtractor } from "../../util/sheet_extractor.js";
-import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
-import { sheetInserter } from "../../util/sheet_inserter.js";
 
 dayjs.extend(utc);
 
@@ -21,9 +21,6 @@ async function flipDraftsCin7() {
 	const printedOrdersJson = await getDraftOrders();
 	console.log(`Got ${printedOrdersJson.length} orders from Cin7`);
 	const formattedData = await filterAndAdjustData(printedOrdersJson);
-
-	console.log(printedOrdersJson);
-	console.log(formattedData.slice(0, 4));
 
 	if (printedOrdersJson.length === 0) {
 		console.log("No matching orders found");
@@ -148,12 +145,8 @@ async function logFlippedOrders(flipCount) {
 	});
 	const flippedOrders = await logExtractor.run();
 
-	console.log(flippedOrders);
-
 	ordersFlippedCount += Number(flippedOrders[0][0]);
 	ordersFlippedCount += flipCount;
-
-	console.log(ordersFlippedCount);
 
 	const logInserter = sheetInserter({
 		functionName: "Update Flipped Order Count",

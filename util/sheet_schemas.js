@@ -143,6 +143,7 @@ export const SHEET_SCHEMAS = {
 		id: "1SDHPnU3pp4EiD66CSqPf7FhsEqC3gsBcMODQl0IUJjE",
 		sand2: "1pk_eJNDr_F8G24unMDDr2EHICSexNJsZI276HXXBD-4",
 		prod_id: "1Yvd4YXK4Te8yRhZX0SvgGKpIXNbCFPnDAzdxoMStYi0",
+		copy: "1N-rIGaL4xBHjVsywm8W1cixfVzpoYfkFHyO2AK3lDLc",
 		pages: {
 			rtg_optimoupload_nc_pnw: "RTG: Optimo Upload NC/PNW",
 			rtg_optimoupload_la_rm: "RTG: Optimo Upload LA/RM",
@@ -291,6 +292,7 @@ export const SHEET_SCHEMAS = {
 		prod_id: "1WO-Nkdi9YvNLE-1-QK6BYvLXQLplXsnMM8_zLwhNICw",
 		pages: {
 			sprouts: "Sprouts",
+			sprouts_by_mail: "Sprouts by mail",
 			whole_foods: "Whole Foods",
 		},
 	},
