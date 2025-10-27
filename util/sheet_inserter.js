@@ -3,11 +3,13 @@ import getAuthenticatedClient from "./google_auth.js";
 import dayjs from "dayjs";
 
 export function sheetInserter(params) {
+	const silent = params.silent ?? false;
+
 	async function run(dataToInsert) {
 		const auth = await getAuthenticatedClient();
 		const sheets = google.sheets({ version: "v4", auth });
 
-		if (params.functionName) {
+		if (params.functionName && !silent) {
 			console.log(`Running script: ${params.functionName}`);
 		}
 
@@ -33,12 +35,13 @@ export function sheetInserter(params) {
 			}
 
 			if (wipePreviousData) {
-				console.log("Wiping previous data from output sheet...");
+				!silent && console.log("Wiping previous data from output sheet...");
 				const clearResponse = await sheets.spreadsheets.values.clear({
 					spreadsheetId: outSheetID,
 					range: `${outSheetName}!${outSheetRange}`,
 				});
-				console.log(`Cleared range: ${clearResponse.data.clearedRange}`);
+				!silent &&
+					console.log(`Cleared range: ${clearResponse.data.clearedRange}`);
 			}
 
 			if (inSheetData.length > 0) {
@@ -58,14 +61,17 @@ export function sheetInserter(params) {
 
 				const updateResponse =
 					await sheets.spreadsheets.values.batchUpdate(outRequest);
-				console.log(`Updated cells: ${updateResponse.data.totalUpdatedCells}`);
+				!silent &&
+					console.log(
+						`Updated cells: ${updateResponse.data.totalUpdatedCells}`,
+					);
 			}
 		} catch (e) {
 			console.error("Error during sheet operation:", e);
 			throw e;
 		}
 
-		console.log("Sheet insertion complete");
+		!silent && console.log("Sheet insertion complete");
 	}
 
 	return Object.freeze({

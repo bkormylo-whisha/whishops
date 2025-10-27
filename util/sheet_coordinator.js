@@ -2,11 +2,12 @@ import { google } from "googleapis";
 import getAuthenticatedClient from "./google_auth.js";
 
 export function sheetCoordinator(params) {
+	const silent = params.silent ?? false;
 	async function run() {
 		const auth = await getAuthenticatedClient();
 		const sheets = google.sheets({ version: "v4", auth });
 
-		console.log(`Running script: ${params.functionName}`);
+		!silent && console.log(`Running script: ${params.functionName}`);
 
 		const inSheetID = params.inSheetID;
 		const inSheetName = params.inSheetName;
@@ -22,7 +23,7 @@ export function sheetCoordinator(params) {
 
 		const wipePreviousData = params.wipePreviousData ?? false;
 
-		console.log("Getting initial data from input sheet");
+		!silent && console.log("Getting initial data from input sheet");
 
 		try {
 			const getResponse = await sheets.spreadsheets.values.get({
@@ -36,7 +37,7 @@ export function sheetCoordinator(params) {
 				inSheetData = [[]];
 			}
 
-			console.log("Retrieved data successfully");
+			!silent && console.log("Retrieved data successfully");
 
 			if (insertTimestamp) {
 				const today = new Date();
@@ -47,12 +48,13 @@ export function sheetCoordinator(params) {
 			}
 
 			if (wipePreviousData) {
-				console.log("Wiping previous data from output sheet...");
+				!silent && console.log("Wiping previous data from output sheet...");
 				const clearResponse = await sheets.spreadsheets.values.clear({
 					spreadsheetId: outSheetID,
 					range: `${outSheetName}!${outSheetRange}`,
 				});
-				console.log(`Cleared range: ${clearResponse.data.clearedRange}`);
+				!silent &&
+					console.log(`Cleared range: ${clearResponse.data.clearedRange}`);
 			}
 
 			const outRequest = {
@@ -71,13 +73,14 @@ export function sheetCoordinator(params) {
 
 			const updateResponse =
 				await sheets.spreadsheets.values.batchUpdate(outRequest);
-			console.log(`Updated cells: ${updateResponse.data.totalUpdatedCells}`);
+			!silent &&
+				console.log(`Updated cells: ${updateResponse.data.totalUpdatedCells}`);
 		} catch (e) {
 			console.error("Error during sheet operation:", e);
 			throw e;
 		}
 
-		console.log("Script run complete");
+		!silent && console.log("Script run complete");
 	}
 
 	return Object.freeze({

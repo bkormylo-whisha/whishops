@@ -142,6 +142,7 @@ async function logFlippedOrders(flipCount) {
 		inSheetID: SHEET_SCHEMAS.WHISHOPS_LOGS.prod_id,
 		inSheetName: SHEET_SCHEMAS.WHISHOPS_LOGS.pages.dashboard,
 		inSheetRange: "A2",
+		silent: true,
 	});
 	const flippedOrders = await logExtractor.run();
 
@@ -154,6 +155,7 @@ async function logFlippedOrders(flipCount) {
 		outSheetName: SHEET_SCHEMAS.WHISHOPS_LOGS.pages.dashboard,
 		outSheetRange: "A2",
 		wipePreviousData: true,
+		silent: true,
 	});
 
 	await logInserter.run([[ordersFlippedCount]]);
