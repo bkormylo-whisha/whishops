@@ -1,4 +1,8 @@
 import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
+import { sheetExtractor } from "../util/sheet_extractor.js";
+import { sheetInserter } from "../util/sheet_inserter.js";
+import { BigQuery } from "@google-cloud/bigquery";
+import dayjs from "dayjs";
 
 // Not finished, future
 
@@ -15,11 +19,12 @@ export const run = async (req, res) => {
 async function syncMasterVisitLog() {
 	await getTableDataFromBQ();
 
-	Logger.log("Script run complete");
+	console.log("Script run complete");
 }
 
 async function getTableDataFromBQ() {
-	const projectId = "test-accel";
+	const bigquery = new BigQuery();
+	const projectId = "whishops";
 	const datasetId = "order_management";
 	const tableId = "optimo-visit-log";
 
@@ -34,6 +39,7 @@ async function getTableDataFromBQ() {
         form_note,
         direct_order_invoice_amount,
         direct_order,
+        delivered,
         parked_order,
         pod_notes,
         dollar_amount_match_direct_order,
@@ -46,39 +52,29 @@ async function getTableDataFromBQ() {
         target_po_number_full_service,
         unique_id,
         account_name,
-        FROM \`${projectId}.${datasetId}.${tableId}\` limit 1000`;
+        FROM \`${projectId}.${datasetId}.${tableId}\` where \`date\` BETWEEN '2025-10-01' AND '2025-10-28'`;
 
-	console.log(query);
-	const request = {
+	const options = {
 		query: query,
-		useLegacySql: false,
+		location: "us-west1",
 	};
 
-	let queryResults = BigQuery.Jobs.query(request, projectId);
-	const jobId = queryResults.jobReference.jobId;
-	const jobLocation = queryResults.jobReference.location;
+	let result;
 
-	let sleepTimeMs = 500;
-	while (!queryResults.jobComplete) {
-		Utilities.sleep(sleepTimeMs);
-		sleepTimeMs *= 2;
-		console.log("trying query");
-		queryResults = BigQuery.Jobs.getQueryResults(projectId, jobId);
+	try {
+		const [job] = await bigquery.createQueryJob(options);
+		console.log(`Data successfully retrieved.`);
+		result = await job.getQueryResults();
+	} catch (e) {
+		console.error(`Error reading table:`, e);
+		throw e;
 	}
+	const rows = result.at(0);
 
-	let rows = queryResults.rows;
-	while (queryResults.pageToken) {
-		queryResults = BigQuery.Jobs.getQueryResults(projectId, jobId, {
-			pageToken: queryResults.pageToken,
-			location: jobLocation,
-		});
-		rows = rows.concat(queryResults.pageToken);
-	}
-
-	buildMasterVisitLogTable(rows);
+	await buildMasterVisitLogTable(rows);
 }
 
-function buildMasterVisitLogTable(rows) {
+async function buildMasterVisitLogTable(rows) {
 	const headers = [
 		"STOP ID",
 		"STORE",
@@ -118,43 +114,47 @@ function buildMasterVisitLogTable(rows) {
 
 	let formattedData = [];
 
-	const fssMap = makeFssMap();
+	console.log(rows.slice(0, 4));
+
+	const fssMap = await makeFssMap();
 
 	for (const row of rows) {
 		if (!row) {
 			continue;
 		}
-		const stopID = row.f[0].v;
-		const store = row.f[1].v;
-		const date = row.f[2].v;
-		const stopType = row.f[3].v;
-		const serviceRep = row.f[4].v;
-		const invoiceNumber = row.f[5].v;
-		const stopCompleted = row.f[6].v === "Completed" ? "YES" : "NO";
-		const urgency = `${fssMap.get(stopID) ?? ""} (${Number(row.f[7].v).toFixed(0)})`; // This gets calculated based on RTG: FSS on WADC
-		const optimoStatus = row.f[6].v;
-		const directOrder = row.f[8].v === "Y" ? "YES" : "NO";
-		const directInvoiceNumber = invoiceNumber;
-		const directDelivered = row.f[9].v === "Y" ? "YES" : "NO";
-		const parkedOrder = row.f[10].v === "Y" ? "YES" : "NO";
-		const rsrOptimorouteNotes = row.f[11].v;
-		const directOrderAmtMatch = row.f[12].v;
-		const directOrderQuantityMatch = row.f[13].v;
-		const fullServiceInvoiceNumber = row.f[14].v;
-		const fullServiceAmountMatch = row.f[15].v === "Y" ? "YES" : "NO";
-		const fullServiceQuantityMatch = row.f[16].v === "Y" ? "YES" : "NO";
-		const targetPoNumberDirectOrder = row.f[17].v;
-		const targetPoNumberFullService = row.f[18].v;
-		const uniqueId = row.f[19].v;
+		const stopID = row.order_no;
+		const store = row.location_name;
+		const date = row.date.value;
+		const stopType = row.stop_type;
+		const serviceRep = row.rep_name;
+		const invoiceNumber = row.inv_number;
+		const stopCompleted = row.status === "Completed" ? "YES" : "NO";
+		const urgency = `${fssMap.get(stopID) ?? ""} (${Number(row.direct_order_invoice_amount).toFixed(0)})`; // This gets calculated based on RTG: FSS on WADC
+		const optimoStatus = row.status;
+		const directOrder = row.direct_order === "Y" ? "YES" : "NO";
+		const directInvoiceNumber = row.inv_number;
+		const directDelivered = row.delivered === "Y" ? "YES" : "NO";
+		const parkedOrder = row.parked_order === "Y" ? "YES" : "NO";
+		const rsrOptimorouteNotes = row.pod_notes;
+		const directOrderAmtMatch = row.dollar_amount_match_direct_order;
+		const directOrderQuantityMatch = row.unit_quantity_match_direct_order;
+		const fullServiceInvoiceNumber = row.full_service_invoice_number;
+		const fullServiceAmountMatch =
+			row.dollar_amount_match_full_service === "Y" ? "YES" : "NO";
+		const fullServiceQuantityMatch =
+			row.unit_quantity_match_full_service === "Y" ? "YES" : "NO";
+		const targetPoNumberDirectOrder = row.target_po_number_direct_order;
+		const targetPoNumberFullService = row.target_po_number_full_service;
+		const uniqueId = row.unique_id;
 		const uniqueIdDOSHIT = `${stopID}${invoiceNumber}`;
 		const uniqueIdTARGET = `${stopID}${dateToExcelSerialDate(date)}`;
 		const edi = ""; // Every formula is broken so
-		const region = row.f[20].v;
-		const weeklyNoOrderTracking = ""; // Does nothing?
-		const urgencyConcat = urgency;
-		const onGS = ""; // Fetch the golden schedule from weekly coverage and check for stopID
-		const tierVDays = `${fssMap.get(stopID) ?? ""}`;
-		const orderSize = `($${Number(row.f[7].v).toFixed(0).toLocaleString("en-US")})`;
+		const region = row.account_name;
+		// const weeklyNoOrderTracking = ""; // Does nothing?
+		// const urgencyConcat = "urgency";
+		// const onGS = ""; // Fetch the golden schedule from weekly coverage and check for stopID
+		// const tierVDays = `${fssMap.get(stopID) ?? ""}`;
+		// const orderSize = `($${Number(row.f[7].v).toFixed(0).toLocaleString("en-US")})`;
 
 		const rowValues = [
 			stopID,
@@ -187,83 +187,42 @@ function buildMasterVisitLogTable(rows) {
 			uniqueIdTARGET,
 			edi,
 			region,
-			weeklyNoOrderTracking,
-			urgencyConcat,
-			onGS,
-			tierVDays,
-			orderSize,
+			// weeklyNoOrderTracking,
+			// urgencyConcat,
+			// onGS,
+			// tierVDays,
+			// orderSize,
 		];
 		formattedData.push(rowValues);
 	}
 
-	console.log(formattedData.slice(2, 3));
-	const outSheetID = SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id;
-	const outSheetName =
-		SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.master_visit_log;
-	const outSheetRange = "A1:AL";
+	const uploadReworkSheetInserter = sheetInserter({
+		outSheetID: SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id,
+		outSheetName: SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.master_visit_log,
+		outSheetRange: "A1:AL",
+		wipePreviousData: true,
+		insertTimestamp: true,
+		silent: true,
+	});
 
 	formattedData = [[""], headers, ...formattedData];
-
-	const today = new Date();
-	formattedData[0][0] = `Last Update: ${today}`;
-
-	const outRequest = {
-		valueInputOption: "USER_ENTERED",
-		data: [
-			{
-				range: `${outSheetName}!${outSheetRange}`,
-				majorDimension: "ROWS",
-				values: formattedData,
-			},
-		],
-	};
-
-	try {
-		const clear = Sheets.Spreadsheets.Values.clear(
-			{},
-			outSheetID,
-			`${outSheetName}!${outSheetRange}`,
-		);
-		if (clear) {
-			Logger.log(clear);
-		} else {
-			Logger.log("Clear failed");
-		}
-		const response = Sheets.Spreadsheets.Values.batchUpdate(
-			outRequest,
-			outSheetID,
-		);
-		if (response) {
-			Logger.log(response);
-		} else {
-			Logger.log("No Response");
-		}
-	} catch (e) {
-		console.log(e);
-	}
-
-	Logger.log("Script run complete");
+	await uploadReworkSheetInserter.run(formattedData);
 }
 
-function makeFssMap() {
-	const inSheetID = SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.id;
-	const inSheetName =
-		SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.pages.rtg_full_service_schedule;
-	const inSheetRange = "A1:K";
+async function makeFssMap() {
+	const fssSheetExtractor = sheetExtractor({
+		inSheetID: SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.testing,
+		inSheetName:
+			SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.pages.rtg_full_service_schedule,
+		inSheetRange: "A1:K",
+		silent: true,
+	});
 
-	Logger.log("Getting initial data from input sheet");
-
-	const inSheetData = Sheets.Spreadsheets.Values.get(
-		inSheetID,
-		`${inSheetName}!${inSheetRange}`,
-		{ valueRenderOption: "UNFORMATTED_VALUE" },
-	).values;
-
-	Logger.log("Retrieved data successfully");
+	const inSheetData = await fssSheetExtractor.run();
 
 	const inSheetMap = new Map();
 	for (const row of inSheetData) {
-		if (row[0] != "") {
+		if (row[0] && row[0] !== "") {
 			inSheetMap.set(row[0], row[10]);
 		}
 	}

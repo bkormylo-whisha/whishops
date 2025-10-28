@@ -259,14 +259,15 @@ async function fetchAllOrders(apiKey) {
 				},
 				includeOrderData: true,
 				includeScheduleInformation: true,
-				orderStatus: [
-					"scheduled",
-					"on_route",
-					"servicing",
-					"success",
-					"failed",
-					"rejected",
-				],
+				// orderStatus: [
+				// 	"scheduled",
+				// 	"on_route",
+				// 	"servicing",
+				// 	"unscheduled",
+				// 	"success",
+				// 	"failed",
+				// 	"rejected",
+				// ],
 			};
 
 			if (after_tag) {

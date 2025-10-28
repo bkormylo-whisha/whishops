@@ -21,6 +21,7 @@ import * as send_sprouts_emails from "./scripts/proof_of_delivery/send_sprouts_e
 import * as send_sprouts_delivery_emails from "./scripts/proof_of_delivery/send_sprouts_delivery_emails.js";
 import * as sync_invoice_date_cin7 from "./scripts/invoice_date/sync_invoice_date_cin7.js";
 import * as sync_master_store_list from "./scripts/psql/sync_master_store_list.js";
+import * as sync_master_visit_log from "./scripts/sync_master_visit_log.js";
 import * as get_orders_cin7 from "./scripts/psql/get_orders_cin7.js";
 import * as flip_drafts_cin7 from "./scripts/flip_drafts/flip_drafts_cin7.js";
 
@@ -109,6 +110,10 @@ app.get("/sync_invoice_date_cin7", (req, res) => {
 
 app.get("/sync_master_store_list", (req, res) => {
 	sync_master_store_list.run(req, res);
+});
+
+app.get("/sync_master_visit_log", (req, res) => {
+	sync_master_visit_log.run(req, res);
 });
 
 app.get("/get_orders_cin7", (req, res) => {
