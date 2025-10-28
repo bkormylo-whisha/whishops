@@ -1,5 +1,6 @@
 import convertJsonToCsv from "../util/convert_json_to_csv.js";
 import * as fs from "fs";
+import * as convert from "xml-js";
 import { Client } from "basic-ftp";
 import dayjs from "dayjs";
 import mailSender from "../util/mail_sender.js";
@@ -26,12 +27,12 @@ async function runWholeFoodsUpload() {
 
 	const mailer = await mailSender();
 	await mailer.send({
-		// recipients: ["bkormylo@whisha.com"],
-		recipients: [
-			"bkormylo@whisha.com",
-			"wsinks@whisha.com",
-			"dlindstrom@whisha.com",
-		],
+		recipients: ["bkormylo@whisha.com"],
+		// recipients: [
+		// 	"bkormylo@whisha.com",
+		// 	"wsinks@whisha.com",
+		// 	"dlindstrom@whisha.com",
+		// ],
 		attachmentName: fileName,
 		attachmentPath: filePath,
 		subject: "Whole Foods Upload",

@@ -11,6 +11,7 @@ import * as bq_sync_optimo_visit_duration from "./scripts/bq_sync_optimo_visit_d
 import * as cin7_status_update from "./scripts/print_log/cin7_status_update.js";
 import * as cin7_get_printed_orders from "./scripts/print_log/cin7_get_printed_orders.js";
 import * as run_whole_foods_upload from "./sps/run_whole_foods_upload.js";
+import * as run_whole_foods_upload_xml from "./sps/run_whole_foods_upload_xml.js";
 import * as backup_and_clear_dol from "./scripts/backup_and_clear_dol.js";
 import * as backup_dol from "./scripts/backup_dol.js";
 import * as stocktake_sync from "./scripts/stocktake_sync.js";
@@ -68,6 +69,10 @@ app.get("/cin7_get_printed_orders", (req, res) => {
 
 app.get("/run_whole_foods_upload", (req, res) => {
 	run_whole_foods_upload.run(req, res);
+});
+
+app.get("/run_whole_foods_upload_xml", (req, res) => {
+	run_whole_foods_upload_xml.run(req, res);
 });
 
 app.get("/backup_and_clear_dol", (req, res) => {

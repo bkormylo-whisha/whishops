@@ -31,7 +31,8 @@
 		"googleapis": "^160.0.0",
 		"mysql2": "^3.15.3",
 		"nodemailer": "^7.0.6",
-		"pg": "^8.16.3"
+		"pg": "^8.16.3",
+		"xml-js": "^1.6.11"
 	},
 	"devDependencies": {
 		"@types/node": "^24.5.2",
