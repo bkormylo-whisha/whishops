@@ -1,6 +1,6 @@
 import { BigQuery } from "@google-cloud/bigquery";
-import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { logRuntimeFor } from "../../util/log_runtime_for.js";
+import dayjs from "dayjs";
 
 export const run = async (req, res) => {
 	console.log("Running Sync Optimo Notes");
@@ -33,52 +33,9 @@ async function syncOptimoNotes() {
 		},
 	];
 
-	var headers = [
-		"Account name",
-		"Order No",
-		"Driver Name",
-		"Date",
-		"Location Name",
-		"Custom Field 5",
-		"Status",
-		"Form Note",
-		"Direct order",
-		"Delivered",
-		"Direct order invoice amount",
-		"Dollar amount match (direct order)?",
-		"Amount mismatch details",
-		"Unit quantity match (direct order)?",
-		"Unit quantity mismatch details",
-		"Full service invoice",
-		"Full service invoice number",
-		"Full service invoice amount",
-		"Dollar amount match (full service)?",
-		"Amount mismatch details",
-		"Unit quantity match (full service)?",
-		"Unit quantity mismatch details",
-		"Credit?",
-		"Credit number",
-		"Credit amount",
-		"Dollar amount match (credit)?",
-		"Amount mismatch details",
-		"Unit quantity match (credit)?",
-		"Unit quantity mismatch details",
-		"Parked order?",
-		"Parked order amount",
-		"Out-of-stocks",
-		"Target PO Number (direct order)",
-		"Target PO Number (full service)",
-		"UNIQUE ID",
-		"STATUS",
-		"POD NOTES",
-		"STOP TYPE",
-		"INV NUMBER",
-		"REP NAME",
-	];
-
 	var result = [];
 	for (const region of apiKeys) {
-		var orders = await fetchAllOrders(region.key);
+		var orders = await fetchRecentOrders(region.key);
 		if (orders && orders.length > 0) {
 			let orderCompletionDetails = await fetchOrderDetails(
 				region.key,
@@ -96,8 +53,6 @@ async function syncOptimoNotes() {
 		}
 	}
 
-	// const resultWithHeaders = [headers, ...result];
-	// await uploadToSheet(resultWithHeaders);
 	await uploadToBigQuery(result);
 	console.log("Script run complete");
 }
@@ -107,9 +62,10 @@ async function uploadToBigQuery(data) {
 	const projectId = "whishops";
 	const datasetId = "order_management";
 	const tableId = "optimo-visit-log";
+	const dateRange = getSyncDates();
 
 	const fullTableName = `${projectId}.${datasetId}.${tableId}`;
-	const query = `TRUNCATE TABLE \`${fullTableName}\``;
+	const query = `DELETE FROM \`${fullTableName}\` WHERE date >= '${dateRange.start}'`;
 	const options = {
 		query: query,
 		location: "us-west1",
@@ -117,10 +73,10 @@ async function uploadToBigQuery(data) {
 
 	try {
 		const [job] = await bigquery.createQueryJob(options);
-		console.log(`Table ${fullTableName} successfully truncated.`);
+		console.log(`Recent dates cleared from ${fullTableName}.`);
 		await job.getQueryResults();
 	} catch (e) {
-		console.error(`Error truncating table ${fullTableName}:`, e);
+		console.error(`Error clearing table dates ${fullTableName}:`, e);
 		throw e;
 	}
 
@@ -191,115 +147,122 @@ async function uploadToBigQuery(data) {
 	}
 }
 
-// async function getAuthenticatedClient() {
-// 	const base64String = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
-// 	const jsonString = Buffer.from(base64String, "base64").toString("utf-8");
-// 	const credentials = JSON.parse(jsonString);
+// async function fetchAllOrders(apiKey) {
+// 	let dateObj = getCurrentAndTrailingDates();
+// 	var searchOrdersUrl = "https://api.optimoroute.com/v1/search_orders";
+// 	var ordersUrl = `${searchOrdersUrl}?key=${apiKey}`;
+// 	let allOrders = [];
+// 	let after_tag = null;
 
-// 	const auth = new GoogleAuth({
-// 		credentials: {
-// 			client_email: credentials.client_email,
-// 			private_key: credentials.private_key,
-// 		},
-// 		scopes: ["https://www.googleapis.com/auth/spreadsheets"], // And other scopes
-// 	});
+// 	for (const dates of dateObj) {
+// 		do {
+// 			let payload = {
+// 				dateRange: {
+// 					from: dates.start,
+// 					to: dates.end,
+// 				},
+// 				includeOrderData: true,
+// 				includeScheduleInformation: true,
+// 				// orderStatus: [
+// 				// 	"scheduled",
+// 				// 	"on_route",
+// 				// 	"servicing",
+// 				// 	"unscheduled",
+// 				// 	"success",
+// 				// 	"failed",
+// 				// 	"rejected",
+// 				// ],
+// 			};
 
-// 	return await auth.getClient();
-// }
+// 			if (after_tag) {
+// 				payload.after_tag = after_tag;
+// 			}
 
-// async function uploadToSheet(resultWithHeaders) {
-// 	const outSheetID = SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id;
-// 	const outSheetName =
-// 		SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.optimoroute_pod_import;
-// 	const outSheetRange = "A1:AN";
+// 			let options = {
+// 				method: "POST",
+// 				headers: {
+// 					"Content-Type": "application/json",
+// 				},
+// 				body: JSON.stringify(payload),
+// 			};
 
-// 	const auth = await getAuthenticatedClient();
-// 	const sheets = google.sheets({ version: "v4", auth });
+// 			try {
+// 				const response = await fetch(ordersUrl, options);
+// 				const data = await response.json();
 
-// 	try {
-// 		const clear = await sheets.spreadsheets.values.clear({
-// 			spreadsheetId: outSheetID,
-// 			range: `${outSheetName}!${outSheetRange}`,
-// 		});
-// 		console.log(`Cleared ${clear.data.clearedRange}`);
+// 				if (response.ok && data.success) {
+// 					allOrders = allOrders.concat(data.orders);
 
-// 		const outRequest = {
-// 			spreadsheetId: outSheetID,
-// 			resource: {
-// 				valueInputOption: "USER_ENTERED",
-// 				data: [
-// 					{
-// 						range: `${outSheetName}!${outSheetRange}`,
-// 						majorDimension: "ROWS",
-// 						values: resultWithHeaders,
-// 					},
-// 				],
-// 			},
-// 		};
-// 		const response = await sheets.spreadsheets.values.batchUpdate(outRequest);
-// 		console.log(`Updated cells: ${response.data.totalUpdatedCells}`);
-// 	} catch (e) {
-// 		console.error("Error uploading to Google Sheet:", e);
+// 					after_tag = data.after_tag || null;
+// 				} else {
+// 					console.log(`Failed to fetch orders: ${JSON.stringify(data)}`);
+// 					break;
+// 				}
+// 			} catch (e) {
+// 				console.log(`Exception: ${e.message}`);
+// 				break;
+// 			}
+// 		} while (after_tag);
 // 	}
+
+// 	return allOrders;
 // }
 
-async function fetchAllOrders(apiKey) {
-	let dateObj = getCurrentAndTrailingDates();
+async function fetchRecentOrders(apiKey) {
+	let dates = getSyncDates();
 	var searchOrdersUrl = "https://api.optimoroute.com/v1/search_orders";
 	var ordersUrl = `${searchOrdersUrl}?key=${apiKey}`;
 	let allOrders = [];
 	let after_tag = null;
 
-	for (const dates of dateObj) {
-		do {
-			let payload = {
-				dateRange: {
-					from: dates.start,
-					to: dates.end,
-				},
-				includeOrderData: true,
-				includeScheduleInformation: true,
-				// orderStatus: [
-				// 	"scheduled",
-				// 	"on_route",
-				// 	"servicing",
-				// 	"unscheduled",
-				// 	"success",
-				// 	"failed",
-				// 	"rejected",
-				// ],
-			};
+	do {
+		let payload = {
+			dateRange: {
+				from: dates.start,
+				to: dates.end,
+			},
+			includeOrderData: true,
+			includeScheduleInformation: true,
+			orderStatus: [
+				"scheduled",
+				"on_route",
+				"servicing",
+				// "unscheduled",
+				"success",
+				"failed",
+				"rejected",
+			],
+		};
 
-			if (after_tag) {
-				payload.after_tag = after_tag;
-			}
+		if (after_tag) {
+			payload.after_tag = after_tag;
+		}
 
-			let options = {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(payload),
-			};
+		let options = {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(payload),
+		};
 
-			try {
-				const response = await fetch(ordersUrl, options);
-				const data = await response.json();
+		try {
+			const response = await fetch(ordersUrl, options);
+			const data = await response.json();
 
-				if (response.ok && data.success) {
-					allOrders = allOrders.concat(data.orders);
+			if (response.ok && data.success) {
+				allOrders = allOrders.concat(data.orders);
 
-					after_tag = data.after_tag || null;
-				} else {
-					console.log(`Failed to fetch orders: ${JSON.stringify(data)}`);
-					break;
-				}
-			} catch (e) {
-				console.log(`Exception: ${e.message}`);
+				after_tag = data.after_tag || null;
+			} else {
+				console.log(`Failed to fetch orders: ${JSON.stringify(data)}`);
 				break;
 			}
-		} while (after_tag);
-	}
+		} catch (e) {
+			console.log(`Exception: ${e.message}`);
+			break;
+		}
+	} while (after_tag);
 
 	return allOrders;
 }
@@ -349,12 +312,6 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 
 	return orders.map((order) => {
 		let detail = detailsMap[order.id] || {};
-		let driverName = `${order.scheduleInformation?.driverName ?? " "}`.split(
-			" ",
-		);
-		// let repId = order.scheduleInformation?.driverName
-		// 	? `${driverName[0]}_${driverName[1].charAt(0)}`
-		// 	: "";
 		let repId = `${order.data.assignedTo?.serial ?? " "}`;
 		let stopType = order.data.location.locationName.split(":")[0];
 		let invNumber = "";
@@ -399,7 +356,7 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 			detail.data?.form?.out_of_stocks ?? "",
 			detail.data?.form?.target_po_number_direct ?? "",
 			detail.data?.form?.target_po_number_full_service ?? "",
-			`${order.data.orderNo}${dateToExcelSerialDate(order.data.date)}${repId}`,
+			`${order.data.orderNo}${dateToExcelSerialDate(order.data.date)}${repId}${order.data.customField5 ?? ""}`,
 			mapStatus(detail.data.status || ""),
 			detail.data?.form?.note ?? "",
 			stopType,
@@ -447,11 +404,21 @@ function dateToExcelSerialDate(prevDate) {
 		days += 1;
 	}
 
-	return days + 1;
+	return days + 3; // Was set to +1 but wasn't matching the IDs currently in WhishAccel
 }
 
 function formatDateToYYYYMMDD(date) {
 	return date.toISOString().split("T")[0];
+}
+
+function getSyncDates() {
+	const now = dayjs();
+	const dateFormat = "YYYY-MM-DD";
+	const dateRangeToFetch = {
+		start: now.subtract(7, "day").format(dateFormat),
+		end: now.format(dateFormat),
+	};
+	return dateRangeToFetch;
 }
 
 function getCurrentAndTrailingDates() {
@@ -463,22 +430,22 @@ function getCurrentAndTrailingDates() {
 		1,
 	);
 	const endOfTrailingMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-	const startOf2ndTrailingMonth = new Date(
-		now.getFullYear(),
-		now.getMonth() - 2,
-		1,
-	);
-	const endOf2ndTrailingMonth = new Date(
-		now.getFullYear(),
-		now.getMonth() - 1,
-		0,
-	);
+	// const startOf2ndTrailingMonth = new Date(
+	// 	now.getFullYear(),
+	// 	now.getMonth() - 2,
+	// 	1,
+	// );
+	// const endOf2ndTrailingMonth = new Date(
+	// 	now.getFullYear(),
+	// 	now.getMonth() - 1,
+	// 	0,
+	// );
 
 	const monthsToFetch = [
-		{
-			start: formatDateToYYYYMMDD(startOf2ndTrailingMonth),
-			end: formatDateToYYYYMMDD(endOf2ndTrailingMonth),
-		},
+		// {
+		// 	start: formatDateToYYYYMMDD(startOf2ndTrailingMonth),
+		// 	end: formatDateToYYYYMMDD(endOf2ndTrailingMonth),
+		// },
 		{
 			start: formatDateToYYYYMMDD(startOfTrailingMonth),
 			end: formatDateToYYYYMMDD(endOfTrailingMonth),

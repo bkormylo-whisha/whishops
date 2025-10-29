@@ -235,7 +235,7 @@ export const SHEET_SCHEMAS = {
 		},
 	},
 
-	OPTIMO_UPLOAD_REWORK: {
+	MVL_REWORK: {
 		id: "1m0mu73QJ_5no7VRqevb-wqPImTwX_3N-r0eP04CX87A",
 		prod_id: "1m0mu73QJ_5no7VRqevb-wqPImTwX_3N-r0eP04CX87A",
 		pages: {

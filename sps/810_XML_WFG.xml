@@ -1,0 +1,164 @@
+<RSX>
+<Invoice>
+    <Header>
+        <InvoiceHeader>
+            <TradingPartnerId>5B5ALLWHITESHAD</TradingPartnerId>
+            <InvoiceNumber>511639</InvoiceNumber>
+            <InvoiceDate>2025-09-19</InvoiceDate>
+            <PurchaseOrderDate>2025-09-02</PurchaseOrderDate>
+            <PurchaseOrderNumber>0</PurchaseOrderNumber>
+        </InvoiceHeader>
+        <Dates>
+            <DateTimeQualifier>017</DateTimeQualifier>
+            <Date>2025-09-02</Date>
+        </Dates>
+        <Address>
+            <AddressTypeCode>ST</AddressTypeCode>
+            <AddressName>Whole Foods - Fort Myers</AddressName>
+        </Address>
+        <Address>
+            <AddressTypeCode>NES</AddressTypeCode>
+            <LocationCodeQualifier>92</LocationCodeQualifier>
+            <AddressLocationNumber>10669</AddressLocationNumber>
+            <AddressName>Whole Foods - Fort Myers</AddressName>
+        </Address>
+        <Address>
+            <AddressTypeCode>VN</AddressTypeCode>
+            <LocationCodeQualifier>92</LocationCodeQualifier>
+            <AddressLocationNumber> S-03427</AddressLocationNumber>
+            <AddressName>Whisha LLC</AddressName>
+        </Address>
+    </Header>
+    <LineItem>
+        <InvoiceLine>
+            <ConsumerPackageCode>0000000000000</ConsumerPackageCode>
+            <VendorPartNumber>PTS0016</VendorPartNumber>
+            <ProductID>
+                <PartNumberQual>UD</PartNumberQual>
+                <PartNumber>785357023505</PartNumber>
+            </ProductID>
+            <InvoiceQty>6</InvoiceQty>
+            <InvoiceQtyUOM>BG</InvoiceQtyUOM>
+            <PurchasePrice>10.54</PurchasePrice>
+        </InvoiceLine>
+        <ProductOrItemDescription>
+            <ProductCharacteristicCode>08</ProductCharacteristicCode>
+            <ProductDescription>PTS 10.5oz Major Dickasons (G) - 785357023505 - Best By 270 Days</ProductDescription>
+        </ProductOrItemDescription>
+        <PhysicalDetails>
+            <PackQualifier>OU</PackQualifier>
+            <PackValue>6</PackValue>
+            <PackUOM>BG</PackUOM>
+            <PackSize>1.0</PackSize>
+        </PhysicalDetails>
+    </LineItem>
+    <LineItem>
+        <InvoiceLine>
+            <ConsumerPackageCode>0000000000000</ConsumerPackageCode>
+            <VendorPartNumber>BDY0005</VendorPartNumber>
+            <ProductID>
+                <PartNumberQual>UD</PartNumberQual>
+                <PartNumber>854165005420</PartNumber>
+            </ProductID>
+            <InvoiceQty>2</InvoiceQty>
+            <InvoiceQtyUOM>BG</InvoiceQtyUOM>
+            <PurchasePrice>11.05</PurchasePrice>
+        </InvoiceLine>
+        <ProductOrItemDescription>
+            <ProductCharacteristicCode>08</ProductCharacteristicCode>
+            <ProductDescription>BDY 12oz Old Florida Blend (WB) - 854165005420 - Roast On/Best By 183 Days</ProductDescription>
+        </ProductOrItemDescription>
+        <PhysicalDetails>
+            <PackQualifier>OU</PackQualifier>
+            <PackValue>2</PackValue>
+            <PackUOM>BG</PackUOM>
+            <PackSize>1.0</PackSize>
+        </PhysicalDetails>
+    </LineItem>
+    <Summary>
+        <TotalAmount>85.34</TotalAmount>
+        <TotalLineItemNumber>2</TotalLineItemNumber>
+    </Summary>
+</Invoice>
+<Invoice>
+    <Header>
+        <InvoiceHeader>
+            <TradingPartnerId>5B5ALLWHITESHAD</TradingPartnerId>
+            <InvoiceNumber>375463</InvoiceNumber>
+            <InvoiceDate>2025-09-19</InvoiceDate>
+            <PurchaseOrderDate>2025-09-02</PurchaseOrderDate>
+            <PurchaseOrderNumber>0</PurchaseOrderNumber>
+        </InvoiceHeader>
+        <Dates>
+            <DateTimeQualifier>017</DateTimeQualifier>
+            <Date>2025-09-02</Date>
+        </Dates>
+        <Address>
+            <AddressTypeCode>ST</AddressTypeCode>
+            <AddressName>Whole Foods - Fort Myers</AddressName>
+        </Address>
+        <Address>
+            <AddressTypeCode>NES</AddressTypeCode>
+            <LocationCodeQualifier>92</LocationCodeQualifier>
+            <AddressLocationNumber>10669</AddressLocationNumber>
+            <AddressName>Whole Foods - Fort Myers</AddressName>
+        </Address>
+        <Address>
+            <AddressTypeCode>VN</AddressTypeCode>
+            <LocationCodeQualifier>92</LocationCodeQualifier>
+            <AddressLocationNumber> S-03427</AddressLocationNumber>
+            <AddressName>Whisha LLC</AddressName>
+        </Address>
+    </Header>
+    <LineItem>
+        <InvoiceLine>
+            <ConsumerPackageCode>0000000000000</ConsumerPackageCode>
+            <VendorPartNumber>PTS0016</VendorPartNumber>
+            <ProductID>
+                <PartNumberQual>UD</PartNumberQual>
+                <PartNumber>785357023505</PartNumber>
+            </ProductID>
+            <InvoiceQty>6</InvoiceQty>
+            <InvoiceQtyUOM>BG</InvoiceQtyUOM>
+            <PurchasePrice>10.54</PurchasePrice>
+        </InvoiceLine>
+        <ProductOrItemDescription>
+            <ProductCharacteristicCode>08</ProductCharacteristicCode>
+            <ProductDescription>PTS 10.5oz Major Dickasons (G) - 785357023505 - Best By 270 Days</ProductDescription>
+        </ProductOrItemDescription>
+        <PhysicalDetails>
+            <PackQualifier>OU</PackQualifier>
+            <PackValue>6</PackValue>
+            <PackUOM>BG</PackUOM>
+            <PackSize>1.0</PackSize>
+        </PhysicalDetails>
+    </LineItem>
+    <LineItem>
+        <InvoiceLine>
+            <ConsumerPackageCode>0000000000000</ConsumerPackageCode>
+            <VendorPartNumber>BDY0005</VendorPartNumber>
+            <ProductID>
+                <PartNumberQual>UD</PartNumberQual>
+                <PartNumber>854165005420</PartNumber>
+            </ProductID>
+            <InvoiceQty>2</InvoiceQty>
+            <InvoiceQtyUOM>BG</InvoiceQtyUOM>
+            <PurchasePrice>11.05</PurchasePrice>
+        </InvoiceLine>
+        <ProductOrItemDescription>
+            <ProductCharacteristicCode>08</ProductCharacteristicCode>
+            <ProductDescription>BDY 12oz Old Florida Blend (WB) - 854165005420 - Roast On/Best By 183 Days</ProductDescription>
+        </ProductOrItemDescription>
+        <PhysicalDetails>
+            <PackQualifier>OU</PackQualifier>
+            <PackValue>2</PackValue>
+            <PackUOM>BG</PackUOM>
+            <PackSize>1.0</PackSize>
+        </PhysicalDetails>
+    </LineItem>
+    <Summary>
+        <TotalAmount>85.34</TotalAmount>
+        <TotalLineItemNumber>2</TotalLineItemNumber>
+    </Summary>
+</Invoice>
+</RSX>

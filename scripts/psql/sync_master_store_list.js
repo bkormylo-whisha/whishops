@@ -73,14 +73,6 @@ async function getMasterStoreList() {
 async function formatAndCleanData(data) {
 	const result = [];
 	for (const row of data) {
-		if (!row.at(0) || row.at(0) === "" || row.at(0) === "NA") {
-			continue;
-		}
-
-		if (row.at(23) === "" || row.at(23) === "Not in Cin7") {
-			continue;
-		}
-
 		const rowObj = {
 			stop_id: row.at(0),
 			store: row.at(1),
@@ -104,20 +96,19 @@ async function formatAndCleanData(data) {
 			sprint: ensureNumber(row.at(21)),
 			supply: ensureNumber(row.at(22)),
 			cin7_name: row.at(23),
-			last_visit: formatExcelDate(row.at(24)),
-			on_gs: row.at(25) === "Yes",
-			on_fss: row.at(26) === "Yes",
+			last_visit: excelDateToTimestamp(row.at(24)),
+			on_gs: row.at(25),
+			on_fss: row.at(26),
 			address_full: row.at(27),
 			ship_eligible: row.at(28),
 		};
-
-		result.push(Object.values(rowObj));
+		result.push(rowObj);
 	}
 
 	return result;
 }
 
-async function uploadToDB(dataToProcess) {
+async function uploadToDB(data) {
 	const psql = await psqlHelper();
 	await psql.establishConnection();
 	const table = "master_store_list";
@@ -130,18 +121,36 @@ async function uploadToDB(dataToProcess) {
 		.map((header) => `${header} = EXCLUDED.${header}`)
 		.join(", \n");
 
-	for (let i = 0; i < dataToProcess.length; i += batchSize) {
-		const batch = dataToProcess.slice(i, i + batchSize);
+	for (let i = 0; i < data.length; i += batchSize) {
+		const rawBatch = data.slice(i, i + batchSize);
 
 		const allValues = [];
 		const rowPlaceholders = [];
 		let localValueIndex = 0;
 
-		for (const cleanedRow of batch) {
+		for (const storeData of rawBatch) {
+			if (
+				!storeData.at(0) ||
+				storeData.at(0) === "" ||
+				storeData.at(0) === "NA"
+			) {
+				continue;
+			}
+
+			if (storeData.at(23) === "" || storeData.at(23) === "Not in Cin7") {
+				continue;
+			}
+
 			const placeholders = [];
 			for (let j = 0; j < totalColumns; j++) {
 				localValueIndex++;
 				placeholders.push(`$${localValueIndex}`);
+			}
+			if (cleanedRow.length !== totalColumns) {
+				console.log(storeData);
+				console.error(
+					`Row data is incomplete! Expected ${totalColumns}, got ${cleanedRow.length}`,
+				);
 			}
 
 			rowPlaceholders.push(`(${placeholders.join(", ")})`);
@@ -163,7 +172,7 @@ async function uploadToDB(dataToProcess) {
 			await psql.runQuery(insertQuery, allValues);
 
 			console.log(
-				`Successfully inserted a batch of ${batch.length} rows using ${allValues.length} parameters.`,
+				`Successfully inserted a batch of ${rawBatch.length} rows using ${allValues.length} parameters.`,
 			);
 		} catch (e) {
 			console.error(`Error inserting batch at index ${i}:`, e);
@@ -215,17 +224,13 @@ function formatExcelDate(date) {
 
 	const dateObj = dayjs(excelDateToTimestamp(Number(rawValue))).toDate();
 	if (Number.isNaN(dateObj.getTime())) {
+		console.warn(`Invalid date value found: ${rawValue}. Inserting NULL.`);
 		return null;
 	}
 
 	return dateObj;
 }
 
-// Duplicate Cin7 Name, separate store name
-// Ann's Health Food Center & Market - Zang Blvd
-// Samples - Mollie Stones (Should be Samples - Mother's Market but there are two)
-// Pachamama Coffee Distributors
-// Cultivar Coffee Roasting Co.
-
-// MSL Changes
-// Ann's Health Food Center & Market - Zang Blvd (DUPLICATE changed to NOT IN CIN7)
+// Duplicates in MSL
+// Vons - 2049
+// Safeway - 1826

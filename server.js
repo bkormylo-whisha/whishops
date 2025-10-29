@@ -1,6 +1,5 @@
 import express from "express";
 import "dotenv/config";
-import * as bq_sync_optimo_notes from "./scripts/bq_sync_optimo_notes.js";
 import * as sync_norcal_direct_order_log from "./scripts/sync_norcal_direct_order_log.js";
 import * as sync_eoq_rtg_crossdock_schedule from "./scripts/sync_eoq_rtg_crossdock_schedule.js";
 import * as sync_eoq_rtg_weekly_coverage from "./scripts/sync_eoq_rtg_weekly_coverage.js";
@@ -21,7 +20,9 @@ import * as send_sprouts_emails from "./scripts/proof_of_delivery/send_sprouts_e
 import * as send_sprouts_delivery_emails from "./scripts/proof_of_delivery/send_sprouts_delivery_emails.js";
 import * as sync_invoice_date_cin7 from "./scripts/invoice_date/sync_invoice_date_cin7.js";
 import * as sync_master_store_list from "./scripts/psql/sync_master_store_list.js";
-import * as sync_master_visit_log from "./scripts/sync_master_visit_log.js";
+import * as bq_sync_optimo_notes from "./scripts/master_visit_log/bq_sync_optimo_notes.js";
+import * as sync_master_visit_log from "./scripts/master_visit_log/sync_master_visit_log.js";
+import * as sync_optimo_data_psql from "./scripts/master_visit_log/sync_optimo_data_psql.js";
 import * as get_orders_cin7 from "./scripts/psql/get_orders_cin7.js";
 import * as flip_drafts_cin7 from "./scripts/flip_drafts/flip_drafts_cin7.js";
 
@@ -104,9 +105,9 @@ app.get("/send_sprouts_delivery_emails", (req, res) => {
 	send_sprouts_delivery_emails.run(req, res);
 });
 
-app.get("/sync_invoice_date_cin7", (req, res) => {
-	sync_invoice_date_cin7.run(req, res);
-});
+// app.get("/sync_invoice_date_cin7", (req, res) => {
+// 	sync_invoice_date_cin7.run(req, res);
+// });
 
 app.get("/sync_master_store_list", (req, res) => {
 	sync_master_store_list.run(req, res);
@@ -122,6 +123,10 @@ app.get("/get_orders_cin7", (req, res) => {
 
 app.get("/flip_drafts_cin7", (req, res) => {
 	flip_drafts_cin7.run(req, res);
+});
+
+app.get("/sync_optimo_data_psql", (req, res) => {
+	sync_optimo_data_psql.run(req, res);
 });
 
 app.listen(PORT, () => {

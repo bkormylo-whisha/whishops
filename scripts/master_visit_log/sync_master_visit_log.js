@@ -1,10 +1,12 @@
-import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
-import { sheetExtractor } from "../util/sheet_extractor.js";
-import { sheetInserter } from "../util/sheet_inserter.js";
+import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
+import { sheetExtractor } from "../../util/sheet_extractor.js";
+import { sheetInserter } from "../../util/sheet_inserter.js";
 import { BigQuery } from "@google-cloud/bigquery";
 import dayjs from "dayjs";
 
 // Not finished, future
+// Still needs to also extract the current MVL, insert the missing manually completed fields, then reinsert
+// Not attached to any live tables
 
 export const run = async (req, res) => {
 	try {
@@ -17,8 +19,9 @@ export const run = async (req, res) => {
 };
 
 async function syncMasterVisitLog() {
-	await getTableDataFromBQ();
+	const rows = await getTableDataFromBQ();
 
+	await buildMasterVisitLogTable(rows);
 	console.log("Script run complete");
 }
 
@@ -27,6 +30,7 @@ async function getTableDataFromBQ() {
 	const projectId = "whishops";
 	const datasetId = "order_management";
 	const tableId = "optimo-visit-log";
+	const dateRange = getDateRange();
 
 	const query = `SELECT 
         order_no,
@@ -52,7 +56,7 @@ async function getTableDataFromBQ() {
         target_po_number_full_service,
         unique_id,
         account_name,
-        FROM \`${projectId}.${datasetId}.${tableId}\` where \`date\` BETWEEN '2025-10-01' AND '2025-10-28'`;
+        FROM \`${projectId}.${datasetId}.${tableId}\` where \`date\` BETWEEN '${dateRange.start}' AND '${dateRange.end}'`;
 
 	const options = {
 		query: query,
@@ -69,9 +73,10 @@ async function getTableDataFromBQ() {
 		console.error(`Error reading table:`, e);
 		throw e;
 	}
+
 	const rows = result.at(0);
 
-	await buildMasterVisitLogTable(rows);
+	return rows;
 }
 
 async function buildMasterVisitLogTable(rows) {
@@ -94,9 +99,12 @@ async function buildMasterVisitLogTable(rows) {
 		"RSR OPTIMOROUTE NOTES",
 		"DIRECT ORDER $ AMT MATCH? (Y/N)",
 		"DIRECT ORDER $ QUANTITY MATCH? (Y/N)",
+		"F/S INVOICE #",
+		"F/S AMT MATCH? (Y/N)",
+		"F/S UNIT QUANTITY MATCH? (Y/N)",
 		"OOS COUNT",
-		"TARGET PO# (DIRECT)",
-		"TARGET PO# (F/S)",
+		"PO# (DIRECT)",
+		"PO# (F/S)",
 		"NOTES", // NO OVERWRITE
 		"MUST HAVE FORMULA",
 		"UNIQUE ID",
@@ -104,19 +112,12 @@ async function buildMasterVisitLogTable(rows) {
 		"UNIQUE ID (TARGET)",
 		"EDI",
 		"REGION",
-		"Weekly No Order Tracking",
-		"Weekly No Order Tracking",
-		"URGENCY CONCAT",
-		"ON GS?",
-		"TIER/VDAYS",
-		"ORDER SIZE",
 	];
 
 	let formattedData = [];
 
-	console.log(rows.slice(0, 4));
-
 	const fssMap = await makeFssMap();
+	const mvlMap = await makeMvlMap();
 
 	for (const row of rows) {
 		if (!row) {
@@ -150,11 +151,9 @@ async function buildMasterVisitLogTable(rows) {
 		const uniqueIdTARGET = `${stopID}${dateToExcelSerialDate(date)}`;
 		const edi = ""; // Every formula is broken so
 		const region = row.account_name;
-		// const weeklyNoOrderTracking = ""; // Does nothing?
-		// const urgencyConcat = "urgency";
-		// const onGS = ""; // Fetch the golden schedule from weekly coverage and check for stopID
-		// const tierVDays = `${fssMap.get(stopID) ?? ""}`;
-		// const orderSize = `($${Number(row.f[7].v).toFixed(0).toLocaleString("en-US")})`;
+		const outOfStocks = row.out_of_stocks;
+
+		const prevManuallyEnteredData = mvlMap.get(uniqueId);
 
 		const rowValues = [
 			stopID,
@@ -163,8 +162,8 @@ async function buildMasterVisitLogTable(rows) {
 			stopType,
 			serviceRep,
 			invoiceNumber,
-			"", // BLANK FIELD,
-			"", // STOP COMPLETED MANUAL FIELD,
+			prevManuallyEnteredData?.inv_adj ?? "", // BLANK FIELD,
+			prevManuallyEnteredData?.stop_completed_manual ?? "", // STOP COMPLETED MANUAL FIELD,
 			stopCompleted,
 			urgency,
 			optimoStatus,
@@ -178,35 +177,58 @@ async function buildMasterVisitLogTable(rows) {
 			fullServiceInvoiceNumber,
 			fullServiceAmountMatch,
 			fullServiceQuantityMatch,
+			outOfStocks,
 			targetPoNumberDirectOrder,
 			targetPoNumberFullService,
-			"", // BLANK FIELD FOR NOTES,
+			prevManuallyEnteredData?.notes ?? "", // BLANK FIELD FOR NOTES,
 			stopCompleted, // REPEATED FIELD APPARENTLY NEEDED IDK
 			uniqueId,
 			uniqueIdDOSHIT,
 			uniqueIdTARGET,
 			edi,
 			region,
-			// weeklyNoOrderTracking,
-			// urgencyConcat,
-			// onGS,
-			// tierVDays,
-			// orderSize,
 		];
+
 		formattedData.push(rowValues);
 	}
+	formattedData = formattedData.sort((a, b) => a.at(2).localeCompare(b.at(2)));
+
+	formattedData = [[""], headers, ...formattedData];
 
 	const uploadReworkSheetInserter = sheetInserter({
-		outSheetID: SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.id,
-		outSheetName: SHEET_SCHEMAS.OPTIMO_UPLOAD_REWORK.pages.master_visit_log,
-		outSheetRange: "A1:AL",
+		outSheetID: SHEET_SCHEMAS.MVL_REWORK.id,
+		outSheetName: SHEET_SCHEMAS.MVL_REWORK.pages.master_visit_log,
+		outSheetRange: "A1:AE",
 		wipePreviousData: true,
 		insertTimestamp: true,
 		silent: true,
 	});
 
-	formattedData = [[""], headers, ...formattedData];
 	await uploadReworkSheetInserter.run(formattedData);
+}
+
+async function makeMvlMap() {
+	const mvlSheetExtractor = sheetExtractor({
+		inSheetID: SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.testing,
+		inSheetName: SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.pages.master_visit_log,
+		inSheetRange: "H3:AB",
+		silent: true,
+	});
+
+	const inSheetData = await mvlSheetExtractor.run();
+
+	const inSheetMap = new Map();
+	for (const row of inSheetData) {
+		const unique_id = row.at(20);
+		const data = {
+			inv_adj: row.at(0),
+			stop_completed_manual: row.at(1),
+			notes: `${row.at(18)}`,
+		};
+		inSheetMap.set(unique_id, data);
+	}
+
+	return inSheetMap;
 }
 
 async function makeFssMap() {
@@ -245,4 +267,15 @@ function dateToExcelSerialDate(prevDate) {
 	}
 
 	return days + 1;
+}
+
+function getDateRange() {
+	const dateFormat = "YYYY-MM-DD";
+	const now = dayjs();
+	const startDate = now.subtract(31, "day").format(dateFormat);
+	const endDate = now.format(dateFormat);
+	return {
+		start: startDate,
+		end: endDate,
+	};
 }
