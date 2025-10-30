@@ -19,11 +19,13 @@ import * as get_unpaid_invoices from "./scripts/proof_of_delivery/get_unpaid_inv
 import * as send_sprouts_emails from "./scripts/proof_of_delivery/send_sprouts_emails.js";
 import * as send_sprouts_delivery_emails from "./scripts/proof_of_delivery/send_sprouts_delivery_emails.js";
 import * as sync_invoice_date_cin7 from "./scripts/invoice_date/sync_invoice_date_cin7.js";
+import * as get_optimo_completion_dates from "./scripts/invoice_date/get_optimo_completion_dates.js";
 import * as sync_master_store_list from "./scripts/psql/sync_master_store_list.js";
 import * as bq_sync_optimo_notes from "./scripts/master_visit_log/bq_sync_optimo_notes.js";
 import * as sync_master_visit_log from "./scripts/master_visit_log/sync_master_visit_log.js";
 import * as sync_optimo_data_psql from "./scripts/master_visit_log/sync_optimo_data_psql.js";
 import * as get_orders_cin7 from "./scripts/psql/get_orders_cin7.js";
+import * as get_orders_cin7_dead from "./scripts/psql/get_orders_cin7_dead.js";
 import * as flip_drafts_cin7 from "./scripts/flip_drafts/flip_drafts_cin7.js";
 
 const app = express();
@@ -119,6 +121,14 @@ app.get("/sync_master_visit_log", (req, res) => {
 
 app.get("/get_orders_cin7", (req, res) => {
 	get_orders_cin7.run(req, res);
+});
+
+app.get("/get_orders_cin7_dead", (req, res) => {
+	get_orders_cin7_dead.run(req, res);
+});
+
+app.get("/get_optimo_completion_dates", (req, res) => {
+	get_optimo_completion_dates.run(req, res);
 });
 
 app.get("/flip_drafts_cin7", (req, res) => {

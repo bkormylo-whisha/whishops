@@ -40,6 +40,7 @@ async function getRawOrderData() {
 	let hasMorePages = true;
 	const rowCount = 250;
 	while (hasMorePages) {
+		console.log(`Grabbing page ${page}`);
 		const sales_endpoint = `v1/SalesOrders?where=invoiceDate>${formattedDate}T00:00:00Z&order=invoiceDate&page=${page}&rows=250`;
 
 		try {
