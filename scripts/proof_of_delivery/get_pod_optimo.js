@@ -63,8 +63,8 @@ async function getPODOptimo() {
 	}
 
 	const resultWithHeaders = [headers, ...result];
-	// await uploadToSheet(resultWithHeaders);
-	await uploadToBigQuery(result);
+	await uploadToSheet(resultWithHeaders);
+	// await uploadToBigQuery(result);
 	console.log("Script run complete");
 }
 
@@ -75,11 +75,11 @@ async function uploadToBigQuery(data) {
 	const tableId = "pod_import";
 
 	const fullTableName = `${projectId}.${datasetId}.${tableId}`;
-	const query = `TRUNCATE TABLE \`${fullTableName}\``;
-	const options = {
-		query: query,
-		location: "us-west1",
-	};
+	// const query = `TRUNCATE TABLE \`${fullTableName}\``;
+	// const options = {
+	// 	query: query,
+	// 	location: "us-west1",
+	// };
 
 	// try {
 	// 	const [job] = await bigquery.createQueryJob(options);

@@ -8,7 +8,7 @@ import excelDateToTimestamp from "../../util/excel_date_to_timestamp.js";
 
 export const run = async (req, res) => {
 	try {
-		await cin7GetPrintedOrders();
+		await cin7GetOrders();
 		res.status(200).json({ status: "success" });
 	} catch (error) {
 		console.error("Error during API call:", error);
@@ -16,54 +16,34 @@ export const run = async (req, res) => {
 	}
 };
 
-async function cin7GetPrintedOrders() {
+async function cin7GetOrders() {
 	console.log("Running Script: Cin7 Get Printed Orders");
-	const printedOrdersJson = await getPrintedOrdersCin7();
-	console.log(`Got ${printedOrdersJson.length} printed orders from Cin7`);
+	const ordersJson = await getOrdersCin7();
+	console.log(`Got ${ordersJson.length} printed orders from Cin7`);
 
-	const formattedData = await formatPrintedOrderJson(printedOrdersJson);
+	const formattedData = await formatPrintedOrderJson(ordersJson);
+
+	console.log(formattedData.slice(0, 4));
+	console.log(
+		formattedData.slice(formattedData.lengh - 4, formattedData.length),
+	);
 
 	// sendPrintedOrdersToDispatchLog(formattedData);
 
-	const regionalData = await dividePrintedOrdersByRegion(formattedData);
-	for (const key in regionalData) {
-		console.log(`${key}: ${regionalData[key].length}`);
-		const regionalSheetInserter = sheetInserter({
-			outSheetID: SHEET_SCHEMAS.PRINT_LOG_STAGING.prod_id,
-			outSheetName: key,
-			outSheetRange: "A2:AD",
-			wipePreviousData: true,
-		});
-		regionalSheetInserter.run(regionalData[key]);
-	}
+	// const regionalData = await dividePrintedOrdersByRegion(formattedData);
+	// for (const key in regionalData) {
+	// 	console.log(`${key}: ${regionalData[key].length}`);
+	// 	const regionalSheetInserter = sheetInserter({
+	// 		outSheetID: SHEET_SCHEMAS.PRINT_LOG_STAGING.prod_id,
+	// 		outSheetName: key,
+	// 		outSheetRange: "A2:AD",
+	// 		wipePreviousData: true,
+	// 	});
+	// 	regionalSheetInserter.run(regionalData[key]);
+	// }
 }
 
-// async function sendPrintedOrdersToDispatchLog(printedOrders) {
-// 	const dispatchLogSheetExtractor = sheetExtractor({
-// 		inSheetID: SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.prod_id,
-// 		inSheetName:
-// 			SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.pages.whs_dispatch_log,
-// 		inSheetRange: "B11:H500",
-// 	});
-
-// 	const prevOrderData = await dispatchLogSheetExtractor.run();
-// 	const prevOrders = prevOrderData.filter(
-// 		(row) => row.at(0) && row.at(0) !== "",
-// 	);
-
-// 	const dispatchLogSheetInserter = sheetInserter({
-// 		outSheetID: SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.prod_id,
-// 		outSheetName:
-// 			SHEET_SCHEMAS.WHISHACCEL_SACRAMENTO_DISPATCH.pages.whs_dispatch_log,
-// 		outSheetRange: "B11:H",
-// 		wipePreviousData: true,
-// 	});
-
-// 	const allOrders = [...prevOrders, ...printedOrders];
-// 	await dispatchLogSheetInserter.run(allOrders);
-// }
-
-async function getPrintedOrdersCin7() {
+async function getOrdersCin7() {
 	const url = "https://api.cin7.com/api/";
 	const username = process.env.CIN7_USERNAME;
 	const password = process.env.CIN7_PASSWORD;
@@ -121,78 +101,42 @@ async function getPrintedOrdersCin7() {
 
 async function formatPrintedOrderJson(printedOrderJson) {
 	let result = [];
-	const date = dayjs();
-	const userMap = await getUsernameMapFromCin7();
-
-	const dolMap = await getDolMap();
 
 	for (const order of printedOrderJson) {
-		const createdDate = dayjs(order.createdDate).format("MM/DD/YY");
-		const dispatchDate = dayjs(order.dispatchedDate).format("MM/DD/YY");
-		const createdBy = userMap.get(order.createdBy); // Each code references a name, need those
+		const company = `${order.company}`;
+		const total = order.total;
 		const invoiceNumber = `${order.invoiceNumber}`;
-		const dolData = dolMap.get(invoiceNumber);
-		const storeName = `${order.company}`;
-		const plTimestamp = date.format("HH:mm A");
-		const originalRep = `${order.trackingCode ?? ""}`;
-		const currentRep = dolData?.currentRep ?? "";
-		const warehouseNotes = "";
-		const orderAmount = order.total.toFixed(2);
-		const dispatchHistory = "";
-		const assignee = "";
-		const stage = "";
-		let cin7Status = ""; // Comes from Submit Directs and needs more info
-		if (order.status === "VOID") {
-			cin7Status = "Void";
-		} else if (order.stage === "Dispatched") {
-			cin7Status = "Dispatched";
-		} else if (order.stage === "Recieved") {
-			cin7Status = "Yes";
-		} else {
-			cin7Status = order.status.at(0) + order.status.slice(1).toLowerCase();
-		}
-		const orderLogStatus = "";
-		const packOrder = "";
-		const mon = `${order.invoiceNumber}`;
-		const prepack = "";
-		const deliveryDate = dayjs(order.invoiceDate).format("MM/DD/YY"); // Switch to ETD later
-		const stopID = "";
-		const units = order.lineItems.reduce((acc, curr) => acc + curr.qty, 0);
-		const bo = "";
-		const trackingCode = "";
-		const possibleDuplicate = "";
-		const doshitNotes = `${dolData?.orderNotes ?? ""}`;
-		const doshitDispatchDate = `${dolData?.dispatchDate === "NaN" ? "" : dolData?.dispatchDate}`;
-		const region = "";
+		const reference = order.reference;
+		const status = order.status;
+		const memeberId = order.memberId;
+		const createdDate = dayjs(order.createdDate).format("MM/DD/YY");
+		const deliveryInstructions = order.deliveryInstructions;
+		const stage = order.stage;
+		const invoiceDate = order.invoiceDate;
+		const id = order.id;
+		const createdBy = order.createdBy;
+		const itemQuantity = order.qty;
+		const trackingCode = order.trackingCode;
+		const internalComments = order.internalComments;
+		const branchId = order.branchId;
 
 		result.push([
-			createdDate,
-			dispatchDate,
-			createdBy,
+			company,
+			total,
 			invoiceNumber,
-			storeName,
-			plTimestamp,
-			originalRep,
-			currentRep,
-			warehouseNotes,
-			orderAmount,
-			dispatchHistory,
-			assignee,
+			reference,
+			status,
+			memeberId,
+			createdDate,
+			deliveryInstructions,
 			stage,
-			cin7Status,
-			orderLogStatus,
-			packOrder,
-			mon,
-			prepack,
-			deliveryDate,
-			stopID,
-			units,
-			bo,
+			invoiceDate,
+			id,
+			createdBy,
+			itemQuantity,
 			trackingCode,
-			possibleDuplicate,
-			doshitNotes,
-			doshitDispatchDate,
-			region,
+			internalComments,
+			branchId,
 		]);
 	}
 

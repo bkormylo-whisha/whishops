@@ -27,6 +27,8 @@ import * as sync_optimo_data_psql from "./scripts/master_visit_log/sync_optimo_d
 import * as get_orders_cin7 from "./scripts/psql/get_orders_cin7.js";
 import * as get_orders_cin7_dead from "./scripts/psql/get_orders_cin7_dead.js";
 import * as flip_drafts_cin7 from "./scripts/flip_drafts/flip_drafts_cin7.js";
+import * as fix_invoice_dates from "./scripts/invoice_date/fix_invoice_dates.js";
+import * as cin7_get_orders from "./scripts/sheet_director/cin7_get_orders.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -137,6 +139,14 @@ app.get("/flip_drafts_cin7", (req, res) => {
 
 app.get("/sync_optimo_data_psql", (req, res) => {
 	sync_optimo_data_psql.run(req, res);
+});
+
+app.get("/fix_invoice_dates", (req, res) => {
+	fix_invoice_dates.run(req, res);
+});
+
+app.get("/cin7_get_orders", (req, res) => {
+	cin7_get_orders.run(req, res);
 });
 
 app.listen(PORT, () => {
