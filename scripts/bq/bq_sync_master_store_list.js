@@ -1,8 +1,8 @@
 import { google } from "googleapis";
-import getAuthenticatedClient from "../util/google_auth.js";
+import getAuthenticatedClient from "../../util/google_auth.js";
 import { BigQuery } from "@google-cloud/bigquery";
-import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
-import { logRuntimeFor } from "../util/log_runtime_for.js";
+import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
+import { logRuntimeFor } from "../../util/log_runtime_for.js";
 
 export const run = async (req, res) => {
 	console.log("Running Sync Master Store List BQ");

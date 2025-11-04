@@ -263,6 +263,7 @@ export const SHEET_SCHEMAS = {
 		prod_id: "17oEgQ3qbtqyROlTPKpIB5Wm0okoUhViCzxMda3lMhpw",
 		pages: {
 			pod: "POD Current + Trailing Months",
+			pod_cin7: "POD Cin7",
 		},
 	},
 

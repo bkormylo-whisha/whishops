@@ -34,13 +34,13 @@ async function runWholeFoodsUploadXml() {
 		// recipients: ["bkormylo@whisha.com"],
 		recipients: [
 			"bkormylo@whisha.com",
-			"wsinks@whisha.com",
+			// "wsinks@whisha.com",
 			// "dlindstrom@whisha.com",
 		],
 		attachmentName: fileName,
 		attachmentPath: filePath,
 		subject: "Whole Foods Upload",
-		bodyText: "",
+		bodyText: "ONLY 5 INVOICES FOR TESTING",
 	});
 }
 
@@ -96,7 +96,7 @@ async function getFullOrderDataCin7(dateRange) {
 
 async function formatCin7Data(data) {
 	const formattedData = [];
-	for (const salesOrder of data) {
+	for (const salesOrder of data.slice(0, 5)) {
 		const totalItems = salesOrder.lineItems.reduce(
 			(total, item) => total + item.qty,
 			0,

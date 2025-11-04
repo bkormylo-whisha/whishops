@@ -1,5 +1,3 @@
-import { BigQuery } from "@google-cloud/bigquery";
-import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { logRuntimeFor } from "../../util/log_runtime_for.js";
 import { sheetInserter } from "../../util/sheet_inserter.js";
 import dayjs from "dayjs";

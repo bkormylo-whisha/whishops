@@ -8,11 +8,11 @@
 // Insert them into the table, update Invoice Numbers that already exist
 
 // Clear the rows from the original table
-import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
+import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { BigQuery } from "@google-cloud/bigquery";
-import { sheetExtractor } from "../util/sheet_extractor.js";
-import { sheetInserter } from "../util/sheet_inserter.js";
-import { driveUploader } from "../util/drive_uploader.js";
+import { sheetExtractor } from "../../util/sheet_extractor.js";
+import { sheetInserter } from "../../util/sheet_inserter.js";
+import { driveUploader } from "../../util/drive_uploader.js";
 import * as fs from "fs";
 import dayjs from "dayjs";
 

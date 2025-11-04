@@ -3,8 +3,8 @@
 
 // The sheet breaks, I doubt this will run without improving the sheet itself
 
-import { SHEET_SCHEMAS } from "../util/sheet_schemas.js";
-import { sheetCoordinator } from "../util/sheet_coordinator.js";
+import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
+import { sheetCoordinator } from "../../util/sheet_coordinator.js";
 
 export const run = async (req, res) => {
 	console.log("Running Sync Routing KPI Data");

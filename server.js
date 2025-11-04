@@ -1,24 +1,24 @@
 import express from "express";
 import "dotenv/config";
-import * as sync_norcal_direct_order_log from "./scripts/sync_norcal_direct_order_log.js";
-import * as sync_eoq_rtg_crossdock_schedule from "./scripts/sync_eoq_rtg_crossdock_schedule.js";
-import * as sync_eoq_rtg_weekly_coverage from "./scripts/sync_eoq_rtg_weekly_coverage.js";
-import * as sync_routing_kpi_data from "./scripts/sync_routing_kpi_data.js";
+import * as sync_norcal_direct_order_log from "./scripts/coupler/sync_norcal_direct_order_log.js";
+import * as sync_eoq_rtg_crossdock_schedule from "./scripts/coupler/sync_eoq_rtg_crossdock_schedule.js";
+import * as sync_eoq_rtg_weekly_coverage from "./scripts/coupler/sync_eoq_rtg_weekly_coverage.js";
+import * as sync_routing_kpi_data from "./scripts/coupler/sync_routing_kpi_data.js";
 import * as upload_routes_to_optimo from "./scripts/upload_routes_to_optimo.js";
-import * as bq_sync_master_store_list from "./scripts/bq_sync_master_store_list.js";
-import * as bq_sync_optimo_visit_duration from "./scripts/bq_sync_optimo_visit_duration.js";
+import * as bq_sync_master_store_list from "./scripts/bq/bq_sync_master_store_list.js";
+import * as bq_sync_optimo_visit_duration from "./scripts/bq/bq_sync_optimo_visit_duration.js";
 import * as cin7_status_update from "./scripts/print_log/cin7_status_update.js";
 import * as cin7_get_printed_orders from "./scripts/print_log/cin7_get_printed_orders.js";
 import * as run_whole_foods_upload from "./sps/run_whole_foods_upload.js";
 import * as run_whole_foods_upload_xml from "./sps/run_whole_foods_upload_xml.js";
-import * as backup_and_clear_dol from "./scripts/backup_and_clear_dol.js";
-import * as backup_dol from "./scripts/backup_dol.js";
+import * as backup_and_clear_dol from "./scripts/backup/backup_and_clear_dol.js";
+import * as backup_dol from "./scripts/backup/backup_dol.js";
 import * as stocktake_sync from "./scripts/stocktake_sync.js";
 import * as get_pod_optimo from "./scripts/proof_of_delivery/get_pod_optimo.js";
+import * as get_pod_cin7 from "./scripts/proof_of_delivery/get_pod_cin7.js";
 import * as get_unpaid_invoices from "./scripts/proof_of_delivery/get_unpaid_invoices.js";
 import * as send_sprouts_emails from "./scripts/proof_of_delivery/send_sprouts_emails.js";
 import * as send_sprouts_delivery_emails from "./scripts/proof_of_delivery/send_sprouts_delivery_emails.js";
-import * as sync_invoice_date_cin7 from "./scripts/invoice_date/sync_invoice_date_cin7.js";
 import * as get_optimo_completion_dates from "./scripts/invoice_date/get_optimo_completion_dates.js";
 import * as sync_master_store_list from "./scripts/psql/sync_master_store_list.js";
 import * as bq_sync_optimo_notes from "./scripts/master_visit_log/bq_sync_optimo_notes.js";
@@ -97,6 +97,10 @@ app.get("/get_pod_optimo", (req, res) => {
 	get_pod_optimo.run(req, res);
 });
 
+app.get("/get_pod_cin7", (req, res) => {
+	get_pod_cin7.run(req, res);
+});
+
 app.get("/get_unpaid_invoices", (req, res) => {
 	get_unpaid_invoices.run(req, res);
 });
@@ -108,10 +112,6 @@ app.get("/send_sprouts_emails", (req, res) => {
 app.get("/send_sprouts_delivery_emails", (req, res) => {
 	send_sprouts_delivery_emails.run(req, res);
 });
-
-// app.get("/sync_invoice_date_cin7", (req, res) => {
-// 	sync_invoice_date_cin7.run(req, res);
-// });
 
 app.get("/sync_master_store_list", (req, res) => {
 	sync_master_store_list.run(req, res);

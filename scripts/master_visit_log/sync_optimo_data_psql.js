@@ -1,4 +1,3 @@
-import { BigQuery } from "@google-cloud/bigquery";
 import psqlHelper from "../../util/psql_helper.js";
 import { logRuntimeFor } from "../../util/log_runtime_for.js";
 import { sheetExtractor } from "../../util/sheet_extractor.js";
