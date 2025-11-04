@@ -1,3 +1,4 @@
+import { BigQuery } from "@google-cloud/bigquery";
 import { logRuntimeFor } from "../../util/log_runtime_for.js";
 import { sheetInserter } from "../../util/sheet_inserter.js";
 import dayjs from "dayjs";
@@ -169,11 +170,20 @@ async function fetchOrderDetails(apiKey, orderIds) {
 	return allDetails;
 }
 
-function mergeOrderData(orders, orderCompletionDetails, accountName) {
+async function mergeOrderData(orders, orderCompletionDetails, accountName) {
 	let detailsMap = new Map();
 	orderCompletionDetails.forEach((detail) => {
 		detailsMap.set(detail.id, detail);
 	});
+
+	const masterStoreListData = await getMasterStoreListFromBQ();
+	const masterStoreMap = new Map();
+
+	for (const row of masterStoreListData) {
+		masterStoreMap.set(row.stop_id, row.region);
+	}
+
+	console.log(orders.slice(0, 4));
 
 	return orders.map((order) => {
 		const detail = detailsMap.get(order.id) || {};
@@ -192,16 +202,36 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 		const endTime = dayjs(detail.data.endTime.utcTime);
 		const duration = endTime.diff(startTime, "minute");
 
+		const mslData = masterStoreMap.get(order.data.orderNo);
+
 		return [
 			order.data.date,
 			accountName,
 			repId,
-			locationName,
+			order.data.orderNo,
 			stopType,
-			invNumber,
+			mslData,
 			duration,
 		];
 	});
+}
+
+async function getMasterStoreListFromBQ() {
+	try {
+		const bigquery = new BigQuery();
+		const query = `
+			SELECT cin7_name, region, stop_id
+			FROM \`whishops.order_management.master-store-list\`
+		`;
+
+		console.log("Executing query");
+		const [rows] = await bigquery.query(query);
+
+		return rows;
+	} catch (error) {
+		console.error("Error during BigQuery API call:", error);
+		throw error;
+	}
 }
 
 function getSyncDates() {

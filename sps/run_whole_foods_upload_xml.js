@@ -29,19 +29,21 @@ async function runWholeFoodsUploadXml() {
 	const filePath = writeToXml(formattedData, formattedDate);
 	// uploadToFtp(filePath);
 
-	const mailer = await mailSender();
-	await mailer.send({
-		// recipients: ["bkormylo@whisha.com"],
-		recipients: [
-			"bkormylo@whisha.com",
-			// "wsinks@whisha.com",
-			// "dlindstrom@whisha.com",
-		],
-		attachmentName: fileName,
-		attachmentPath: filePath,
-		subject: "Whole Foods Upload",
-		bodyText: "ONLY 5 INVOICES FOR TESTING",
-	});
+	// const mailer = await mailSender();
+	// await mailer.send({
+	// 	// recipients: ["bkormylo@whisha.com"],
+	// 	recipients: [
+	// 		"bkormylo@whisha.com",
+	// 		// "wsinks@whisha.com",
+	// 		// "dlindstrom@whisha.com",
+	// 	],
+	// 	attachmentName: fileName,
+	// 	attachmentPath: filePath,
+	// 	subject: "Whole Foods Upload",
+	// 	bodyText: "ONLY 5 INVOICES FOR TESTING",
+	// });
+
+	await uploadToFtp(filePath);
 }
 
 async function getFullOrderDataCin7(dateRange) {
@@ -88,8 +90,8 @@ async function getFullOrderDataCin7(dateRange) {
 		}
 	}
 
-	console.log(result.slice(0, 4));
-	console.log(result.slice(result.length - 4, result.length));
+	// console.log(result.slice(0, 4));
+	// console.log(result.slice(result.length - 4, result.length));
 
 	return result;
 }
@@ -106,10 +108,6 @@ async function formatCin7Data(data) {
 			continue;
 		}
 
-		// if (!salesOrder.customerPoNo || salesOrder.customerPoNo?.length < 1) {
-		// 	continue;
-		// }
-
 		if (!salesOrder.dispatchedDate) {
 			continue;
 		}
@@ -122,7 +120,6 @@ async function formatCin7Data(data) {
 			// Filters out items we shouldn't be selling anyways
 			const barcode = `${lineItem.barcode ?? ""}`;
 			if (barcode.length <= 11) {
-				// console.log(`Skipped: ${JSON.stringify(salesOrder)}`);
 				continue;
 			}
 
@@ -236,21 +233,21 @@ function writeToXml(jsonData, formattedDate) {
 
 async function uploadToFtp(filePath) {
 	const client = new Client();
+	const fileName = filePath.split("/").at(-1);
+	console.log(`Uploading ${fileName}`);
 	client.ftp.verbose = true;
 
 	try {
 		await client.access({
-			host: "your_ftp_host",
+			host: "ftp.spscommerce.com",
 			user: "whisha",
 			password: "TFio8egTvDHS",
-			secure: true,
+			secure: false,
 		});
 
-		await client.upload(
-			fs.createReadStream(filePath),
-			"remote_directory/remote_file.txt",
-		);
-		console.log("File uploaded successfully!");
+		// console.log(await client.list());
+		await client.ensureDir("testin");
+		await client.uploadFrom(fs.createReadStream(filePath), fileName);
 	} catch (err) {
 		console.error("FTP Error:", err);
 	} finally {
