@@ -34,8 +34,8 @@ async function runWholeFoodsUploadXml() {
 		// recipients: ["bkormylo@whisha.com"],
 		recipients: [
 			"bkormylo@whisha.com",
-			// "wsinks@whisha.com",
-			// "dlindstrom@whisha.com",
+			"wsinks@whisha.com",
+			"dlindstrom@whisha.com",
 		],
 		attachmentName: fileName,
 		attachmentPath: filePath,
@@ -106,6 +106,10 @@ async function formatCin7Data(data) {
 			continue;
 		}
 
+		// if (!salesOrder.customerPoNo || salesOrder.customerPoNo?.length < 1) {
+		// 	continue;
+		// }
+
 		if (!salesOrder.dispatchedDate) {
 			continue;
 		}
@@ -124,13 +128,13 @@ async function formatCin7Data(data) {
 
 			const formattedItem = {
 				InvoiceLine: {
-					ConsumerPackageCode: "0000000000000", // Not the barcode, no idea what this is
+					ConsumerPackageCode: lineItem.barcode,
 					VendorPartNumber: lineItem.code,
 					// No reference to this part in docs
-					ProductID: {
-						PartNumberQual: "UD",
-						PartNumber: lineItem.barcode, // Seems correct
-					},
+					// ProductID: {
+					// 	PartNumberQual: "UD",
+					// 	PartNumber: lineItem.barcode, // Seems correct
+					// },
 					InvoiceQty: lineItem.qty,
 					InvoiceQtyUOM: "BG",
 					PurchasePrice: lineItem.unitPrice,
@@ -156,11 +160,14 @@ async function formatCin7Data(data) {
 					InvoiceNumber: salesOrder.invoiceNumber,
 					InvoiceDate: salesOrder.invoiceDate.slice(0, 10),
 					PurchaseOrderDate: salesOrder.createdDate.slice(0, 10),
-					PurchaseOrderNumber: salesOrder.customerPoNo,
+					PurchaseOrderNumber: salesOrder.customerOrderNo,
 				},
 				Dates: {
 					DateTimeQualifier: "017", // Designates it as Estimated Delivery according to WF
-					Date: salesOrder.dispatchedDate.slice(0, 10), // Which date goes here?
+					Date: dayjs(salesOrder.dispatchedDate)
+						.add(1, "day")
+						.toISOString()
+						.slice(0, 10), // Which date goes here?
 				},
 				Address: [
 					{
@@ -176,7 +183,7 @@ async function formatCin7Data(data) {
 					{
 						AddressTypeCode: "VN", // Vendor (should be Whisha Info)
 						LocationCodeQualifier: 91, // Sample had 92 but that should be for buyer location
-						AddressLocationNumber: "S-03427", // No idea what this is for us
+						AddressLocationNumber: "0000235079", // No idea what this is for us
 						AddressName: "Whisha - LLC",
 					},
 				],
@@ -186,10 +193,7 @@ async function formatCin7Data(data) {
 		const formattedInvoiceSummary = {
 			Summary: {
 				TotalAmount: salesOrder.total,
-				TotalLineItemNumber: salesOrder.lineItems.reduce(
-					(total, item) => total + item.qty,
-					0,
-				),
+				TotalLineItemNumber: salesOrder.lineItems.length,
 			},
 		};
 

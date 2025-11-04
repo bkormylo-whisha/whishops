@@ -53,7 +53,8 @@ async function getOrdersCin7() {
 		Authorization: "Basic " + btoa(username + ":" + password),
 	};
 
-	const date = dayjs("2025-10-20T00:00:00Z");
+	// const date = dayjs("2025-10-20T00:00:00Z");
+	const date = dayjs().subtract(3, "month");
 	const formattedDate = date.format("YYYY-MM-DD");
 
 	let page = 1;
