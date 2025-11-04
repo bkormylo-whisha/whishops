@@ -22,6 +22,7 @@ export function sheetInserter(params) {
 		const timestampCol = params.timestampCol ?? 0;
 
 		const wipePreviousData = params.wipePreviousData ?? false;
+		const append = params.append ?? false;
 
 		const inSheetData = dataToInsert;
 
@@ -45,26 +46,45 @@ export function sheetInserter(params) {
 			}
 
 			if (inSheetData.length > 0) {
-				const outRequest = {
-					spreadsheetId: outSheetID,
-					resource: {
+				if (append) {
+					const appendRequest = {
+						spreadsheetId: outSheetID,
+						range: `${outSheetName}!${outSheetRange}`,
 						valueInputOption: "USER_ENTERED",
-						data: [
-							{
-								range: `${outSheetName}!${outSheetRange}`,
-								majorDimension: "ROWS",
-								values: dataToInsert,
-							},
-						],
-					},
-				};
+						insertDataOption: "INSERT_ROWS",
+						resource: {
+							values: dataToInsert,
+						},
+					};
 
-				const updateResponse =
-					await sheets.spreadsheets.values.batchUpdate(outRequest);
-				!silent &&
-					console.log(
-						`Updated cells: ${updateResponse.data.totalUpdatedCells}`,
-					);
+					const appendResponse =
+						await sheets.spreadsheets.values.append(appendRequest);
+					!silent &&
+						console.log(
+							`Appended cells: ${appendResponse.data.updates.updatedCells}`,
+						);
+				} else {
+					const outRequest = {
+						spreadsheetId: outSheetID,
+						resource: {
+							valueInputOption: "USER_ENTERED",
+							data: [
+								{
+									range: `${outSheetName}!${outSheetRange}`,
+									majorDimension: "ROWS",
+									values: dataToInsert,
+								},
+							],
+						},
+					};
+
+					const updateResponse =
+						await sheets.spreadsheets.values.batchUpdate(outRequest);
+					!silent &&
+						console.log(
+							`Updated cells: ${updateResponse.data.totalUpdatedCells}`,
+						);
+				}
 			}
 		} catch (e) {
 			console.error("Error during sheet operation:", e);

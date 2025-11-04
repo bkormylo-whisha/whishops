@@ -34,8 +34,8 @@ async function runWholeFoodsUploadXml() {
 		// recipients: ["bkormylo@whisha.com"],
 		recipients: [
 			"bkormylo@whisha.com",
-			"wsinks@whisha.com",
-			"dlindstrom@whisha.com",
+			// "wsinks@whisha.com",
+			// "dlindstrom@whisha.com",
 		],
 		attachmentName: fileName,
 		attachmentPath: filePath,
@@ -96,7 +96,7 @@ async function getFullOrderDataCin7(dateRange) {
 
 async function formatCin7Data(data) {
 	const formattedData = [];
-	for (const salesOrder of data.slice(0, 5)) {
+	for (const salesOrder of data) {
 		const totalItems = salesOrder.lineItems.reduce(
 			(total, item) => total + item.qty,
 			0,
@@ -241,8 +241,8 @@ async function uploadToFtp(filePath) {
 	try {
 		await client.access({
 			host: "your_ftp_host",
-			user: "your_ftp_username",
-			password: "your_ftp_password",
+			user: "whisha",
+			password: "TFio8egTvDHS",
 			secure: true,
 		});
 
