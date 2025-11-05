@@ -3,6 +3,7 @@ import * as convert from "xml-js";
 import { Client } from "basic-ftp";
 import dayjs from "dayjs";
 import mailSender from "../util/mail_sender.js";
+import { sheetInserter } from "../util/sheet_inserter.js";
 import delay from "../util/delay.js";
 
 export const run = async (req, res) => {
@@ -17,17 +18,15 @@ export const run = async (req, res) => {
 
 async function runWholeFoodsUploadXml() {
 	const date = dayjs();
-	const formattedDate = date.subtract(7, "day").format("YYYY-MM-DD");
 	const dateRange = {
-		start: date.subtract(7, "day").format("YYYY-MM-DD"),
-		end: date.subtract(1, "day").format("YYYY-MM-DD"),
+		start: date.subtract(10, "day").format("YYYY-MM-DD"),
+		end: date.subtract(3, "day").format("YYYY-MM-DD"),
 	};
-	const fileName = `in_whisha_wfm_${formattedDate}.xml`;
+	const fileName = `in_whisha_wfm_${dateRange.end}.xml`;
 
 	const updatedOrderData = await getFullOrderDataCin7(dateRange);
-	const formattedData = await formatCin7Data(updatedOrderData, formattedDate);
-	const filePath = writeToXml(formattedData, formattedDate);
-	// uploadToFtp(filePath);
+	const formattedData = await formatCin7Data(updatedOrderData);
+	const filePath = writeToXml(formattedData, dateRange.end);
 
 	// const mailer = await mailSender();
 	// await mailer.send({
@@ -43,7 +42,7 @@ async function runWholeFoodsUploadXml() {
 	// 	bodyText: "ONLY 5 INVOICES FOR TESTING",
 	// });
 
-	await uploadToFtp(filePath);
+	// await uploadToFtp(filePath);
 }
 
 async function getFullOrderDataCin7(dateRange) {
@@ -98,6 +97,8 @@ async function getFullOrderDataCin7(dateRange) {
 
 async function formatCin7Data(data) {
 	const formattedData = [];
+	let missingOrderNoCount = 0;
+	const badInvoices = [];
 	for (const salesOrder of data) {
 		const totalItems = salesOrder.lineItems.reduce(
 			(total, item) => total + item.qty,
@@ -109,6 +110,20 @@ async function formatCin7Data(data) {
 		}
 
 		if (!salesOrder.dispatchedDate) {
+			continue;
+		}
+
+		if (!salesOrder.customerOrderNo) {
+			missingOrderNoCount++;
+			continue;
+		}
+
+		if (
+			`${salesOrder.customerOrderNo}`.length === 1 ||
+			`${salesOrder.customerOrderNo}`.length > 9
+		) {
+			// console.log(salesOrder.invoiceNumber);
+			badInvoices.push(salesOrder.invoiceNumber);
 			continue;
 		}
 
@@ -125,13 +140,8 @@ async function formatCin7Data(data) {
 
 			const formattedItem = {
 				InvoiceLine: {
-					ConsumerPackageCode: lineItem.barcode,
+					ConsumerPackageCode: lineItem.barcode.replaceAll("-", ""),
 					VendorPartNumber: lineItem.code,
-					// No reference to this part in docs
-					// ProductID: {
-					// 	PartNumberQual: "UD",
-					// 	PartNumber: lineItem.barcode, // Seems correct
-					// },
 					InvoiceQty: lineItem.qty,
 					InvoiceQtyUOM: "BG",
 					PurchasePrice: lineItem.unitPrice,
@@ -144,7 +154,7 @@ async function formatCin7Data(data) {
 					PackQualifier: "OU",
 					PackValue: lineItem.qty,
 					PackUOM: "BG",
-					PackSize: 1.0, // Might not be applicable, defaulting to 1.0
+					PackSize: 1.0,
 				},
 			};
 			items.push(formattedItem);
@@ -153,29 +163,29 @@ async function formatCin7Data(data) {
 		const formattedInvoiceHeader = {
 			Header: {
 				InvoiceHeader: {
-					TradingPartnerId: "5B5ALLWHITESHAD", // Manually Assigned by SPS
+					TradingPartnerId: "5B5ALLWHITESHAD",
 					InvoiceNumber: salesOrder.invoiceNumber,
 					InvoiceDate: salesOrder.invoiceDate.slice(0, 10),
 					PurchaseOrderDate: salesOrder.createdDate.slice(0, 10),
 					PurchaseOrderNumber: salesOrder.customerOrderNo,
 				},
 				Dates: {
-					DateTimeQualifier: "017", // Designates it as Estimated Delivery according to WF
+					DateTimeQualifier: "017",
 					Date: dayjs(salesOrder.dispatchedDate)
 						.add(1, "day")
 						.toISOString()
-						.slice(0, 10), // Which date goes here?
+						.slice(0, 10),
 				},
 				Address: [
 					{
 						AddressTypeCode: "ST", // Ship To
-						AddressName: salesOrder.deliveryCompany,
+						AddressName: salesOrder.deliveryCompany.split("-").at(-1).trim(),
 					},
 					{
 						AddressTypeCode: "NES", // New Store?
 						LocationCodeQualifier: 92,
 						AddressLocationNumber: salesOrder.lastName.split(" ").at(2),
-						AddressName: salesOrder.deliveryCompany,
+						AddressName: salesOrder.deliveryCompany.split("-").at(-1).trim(),
 					},
 					{
 						AddressTypeCode: "VN", // Vendor (should be Whisha Info)
@@ -189,7 +199,7 @@ async function formatCin7Data(data) {
 
 		const formattedInvoiceSummary = {
 			Summary: {
-				TotalAmount: salesOrder.total,
+				TotalAmount: salesOrder.total.toFixed(2),
 				TotalLineItemNumber: salesOrder.lineItems.length,
 			},
 		};
@@ -202,6 +212,11 @@ async function formatCin7Data(data) {
 
 		formattedData.push(fullInvoice);
 	}
+
+	console.log(`Skipped ${missingOrderNoCount} orders`);
+	console.log(`Wrote ${formattedData.length} orders`);
+
+	await logMalformedPONumbers(badInvoices);
 
 	return formattedData;
 }
@@ -235,7 +250,7 @@ async function uploadToFtp(filePath) {
 	const client = new Client();
 	const fileName = filePath.split("/").at(-1);
 	console.log(`Uploading ${fileName}`);
-	client.ftp.verbose = true;
+	client.ftp.verbose = false;
 
 	try {
 		await client.access({
@@ -245,7 +260,6 @@ async function uploadToFtp(filePath) {
 			secure: false,
 		});
 
-		// console.log(await client.list());
 		await client.ensureDir("testin");
 		await client.uploadFrom(fs.createReadStream(filePath), fileName);
 	} catch (err) {
@@ -253,4 +267,58 @@ async function uploadToFtp(filePath) {
 	} finally {
 		client.close();
 	}
+}
+
+async function logMalformedPONumbers(badInvoices) {
+	const url = "https://api.cin7.com/api/";
+	const username = process.env.CIN7_USERNAME;
+	const password = process.env.CIN7_PASSWORD;
+	const uniqueBadInvoices = new Set(badInvoices);
+	const badInvoiceArr = [...uniqueBadInvoices];
+
+	let options = {};
+	options.headers = {
+		Authorization: "Basic " + btoa(username + ":" + password),
+	};
+
+	let page = 1;
+	let result = [];
+	let hasMorePages = true;
+	while (hasMorePages) {
+		const endpoint = `v1/SalesOrders?where=invoiceNumber IN (${badInvoiceArr.join(",")})&page=${page}&rows=250`;
+
+		try {
+			const response = await fetch(`${url}${endpoint}`, options);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			const data = await response.json();
+			await delay(500);
+
+			if (data.length > 0) {
+				result.push(...data);
+				page++;
+			} else {
+				hasMorePages = false;
+			}
+		} catch (error) {
+			console.error("Failed to fetch data:", error);
+			hasMorePages = false;
+		}
+	}
+
+	const customerPurchaseOrderSheetInserter = sheetInserter({
+		outSheetID: "1xF01u5KEbpJ3HPcPaj_wawU3ziA9e211Uqeld6bfvyY",
+		outSheetName: "Whole Foods PO Audit",
+		outSheetRange: "A2:B",
+		wipePreviousData: true,
+		silent: true,
+	});
+
+	const formattedInvoices = result.map((invoice) => [
+		invoice.invoiceNumber,
+		invoice.source,
+	]);
+
+	await customerPurchaseOrderSheetInserter.run(formattedInvoices);
 }
