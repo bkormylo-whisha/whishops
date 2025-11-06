@@ -8,7 +8,7 @@ import delay from "../util/delay.js";
 
 export const run = async (req, res) => {
 	try {
-		await runWholeFoodsUploadXml();
+		await sendPurchaseOrder();
 		res.status(200).json({ status: "success" });
 	} catch (error) {
 		console.error("Error during API call:", error);
@@ -16,7 +16,7 @@ export const run = async (req, res) => {
 	}
 };
 
-async function runWholeFoodsUploadXml() {
+async function sendPurchaseOrder() {
 	const date = dayjs();
 	const dateRange = {
 		start: date.subtract(10, "day").format("YYYY-MM-DD"),
@@ -59,7 +59,7 @@ async function getFullOrderDataCin7(dateRange) {
 	let result = [];
 	let hasMorePages = true;
 	while (hasMorePages) {
-		const endpoint = `v1/SalesOrders?where=invoiceDate>=${dateRange.start}T00:00:00Z AND firstName='WF'&order=invoiceDate&page=${page}&rows=250`;
+		const endpoint = `v1/PurchaseOrders?where=createdDate>=${dateRange.start}T00:00:00Z AND firstName LIKE '%PTS%'&order=invoiceDate&page=${page}&rows=250`;
 
 		try {
 			const response = await fetch(`${url}${endpoint}`, options);
@@ -99,8 +99,8 @@ async function formatCin7Data(data) {
 	const formattedData = [];
 	let missingOrderNoCount = 0;
 	const badInvoices = [];
-	for (const salesOrder of data) {
-		const totalItems = salesOrder.lineItems.reduce(
+	for (const purchaseOrder of data) {
+		const totalItems = purchaseOrder.lineItems.reduce(
 			(total, item) => total + item.qty,
 			0,
 		);
@@ -109,28 +109,28 @@ async function formatCin7Data(data) {
 			continue;
 		}
 
-		if (!salesOrder.dispatchedDate) {
+		if (!purchaseOrder.dispatchedDate) {
 			continue;
 		}
 
-		if (!salesOrder.customerOrderNo) {
+		if (!purchaseOrder.customerOrderNo) {
 			missingOrderNoCount++;
 			continue;
 		}
 
 		if (
-			`${salesOrder.customerOrderNo}`.length === 1 ||
-			`${salesOrder.customerOrderNo}`.length > 9
+			`${purchaseOrder.customerOrderNo}`.length === 1 ||
+			`${purchaseOrder.customerOrderNo}`.length > 9
 		) {
 			// console.log(salesOrder.invoiceNumber);
-			badInvoices.push(salesOrder.invoiceNumber);
+			badInvoices.push(purchaseOrder.invoiceNumber);
 			continue;
 		}
 
 		const items = [];
 
-		for (let i = 1; i <= salesOrder.lineItems.length; i++) {
-			const lineItem = salesOrder.lineItems.at(i - 1);
+		for (let i = 1; i <= purchaseOrder.lineItems.length; i++) {
+			const lineItem = purchaseOrder.lineItems.at(i - 1);
 
 			// Filters out items we shouldn't be selling anyways
 			const barcode = `${lineItem.barcode ?? ""}`;
@@ -164,14 +164,14 @@ async function formatCin7Data(data) {
 			Header: {
 				InvoiceHeader: {
 					TradingPartnerId: "5B5ALLWHITESHAD",
-					InvoiceNumber: salesOrder.invoiceNumber,
-					InvoiceDate: salesOrder.invoiceDate.slice(0, 10),
-					PurchaseOrderDate: salesOrder.createdDate.slice(0, 10),
-					PurchaseOrderNumber: salesOrder.customerOrderNo,
+					InvoiceNumber: purchaseOrder.invoiceNumber,
+					InvoiceDate: purchaseOrder.invoiceDate.slice(0, 10),
+					PurchaseOrderDate: purchaseOrder.createdDate.slice(0, 10),
+					PurchaseOrderNumber: purchaseOrder.customerOrderNo,
 				},
 				Dates: {
 					DateTimeQualifier: "017",
-					Date: dayjs(salesOrder.dispatchedDate)
+					Date: dayjs(purchaseOrder.dispatchedDate)
 						.add(1, "day")
 						.toISOString()
 						.slice(0, 10),
@@ -179,13 +179,13 @@ async function formatCin7Data(data) {
 				Address: [
 					{
 						AddressTypeCode: "ST", // Ship To
-						AddressName: salesOrder.deliveryCompany.split("-").at(-1).trim(),
+						AddressName: purchaseOrder.deliveryCompany.split("-").at(-1).trim(),
 					},
 					{
 						AddressTypeCode: "NES", // New Store?
 						LocationCodeQualifier: 92,
-						AddressLocationNumber: salesOrder.lastName.split(" ").at(2),
-						AddressName: salesOrder.deliveryCompany.split("-").at(-1).trim(),
+						AddressLocationNumber: purchaseOrder.lastName.split(" ").at(2),
+						AddressName: purchaseOrder.deliveryCompany.split("-").at(-1).trim(),
 					},
 					{
 						AddressTypeCode: "VN", // Vendor (should be Whisha Info)
@@ -199,8 +199,8 @@ async function formatCin7Data(data) {
 
 		const formattedInvoiceSummary = {
 			Summary: {
-				TotalAmount: salesOrder.total.toFixed(2),
-				TotalLineItemNumber: salesOrder.lineItems.length,
+				TotalAmount: purchaseOrder.total.toFixed(2),
+				TotalLineItemNumber: purchaseOrder.lineItems.length,
 			},
 		};
 
@@ -310,15 +310,39 @@ async function logMalformedPONumbers(badInvoices) {
 	const customerPurchaseOrderSheetInserter = sheetInserter({
 		outSheetID: "1xF01u5KEbpJ3HPcPaj_wawU3ziA9e211Uqeld6bfvyY",
 		outSheetName: "Whole Foods PO Audit",
-		outSheetRange: "A2:B",
+		outSheetRange: "A2:C",
 		wipePreviousData: true,
 		silent: true,
 	});
 
-	const formattedInvoices = result.map((invoice) => [
-		invoice.invoiceNumber,
-		invoice.source,
+	const salesRegions = new Map([
+		["5876", "TEXAS"],
+		["6025", "SOCAL"],
+		["3", "NORCAL"],
+		["6582", "ROCKY MOUNTAIN"],
+		["7542", "PNW"],
+		["7856", "MIDWEST"],
+		["10199", "FLORIDA"],
+		["10029", "NORTHEAST"],
+		["11979", "SOUTHEAST"],
+		["11978", "MID-ATLANTIC"],
 	]);
+
+	const formattedInvoices = result
+		.sort((a, b) => {
+			if (a.source < b.source) {
+				return -1;
+			}
+			if (a.source > b.source) {
+				return 1;
+			}
+			return 0;
+		})
+		.map((invoice) => [
+			invoice.invoiceNumber,
+			invoice.source,
+			salesRegions.get(`${invoice.branchId}`),
+		]);
 
 	await customerPurchaseOrderSheetInserter.run(formattedInvoices);
 }

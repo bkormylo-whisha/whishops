@@ -29,6 +29,7 @@ async function getUnpaidInvoices() {
 		const data = {
 			order_date: pod.order_date,
 			customer_pod: pod.customer_pod,
+			whisha_pod: pod.whisha_pod,
 			target_po_number: pod.target_po_number,
 		};
 		podMap.set(pod.invoice_number, data);
@@ -45,7 +46,7 @@ async function getUnpaidInvoices() {
 	const sproutsSheetInserter = sheetInserter({
 		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
 		outSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.sprouts,
-		outSheetRange: "A2:H",
+		outSheetRange: "A2:I",
 		wipePreviousData: true,
 	});
 
@@ -54,7 +55,7 @@ async function getUnpaidInvoices() {
 	const wholeFoodsSheetInserter = sheetInserter({
 		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
 		outSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.whole_foods,
-		outSheetRange: "A2:H",
+		outSheetRange: "A2:I",
 		wipePreviousData: true,
 	});
 
@@ -126,7 +127,7 @@ async function getPodDataFromBQ() {
 	try {
 		const bigquery = new BigQuery();
 		const query = `
-			SELECT invoice_number, customer_pod, order_date, target_po_number
+			SELECT invoice_number, customer_pod, whisha_pod, order_date, target_po_number
 			FROM \`whishops.finance.pod_import\`
             WHERE LEFT(stop_id, 2) IN ('SP', 'WF')
 		`;
@@ -150,7 +151,8 @@ async function mergeSheetDataWithPOD(sheetData, podMap) {
 			const mergedRow = {
 				...row,
 				order_date: `${rowPodData.order_date.value}`,
-				customer_pod: `${rowPodData.customer_pod}`,
+				customer_pod: `${rowPodData.customer_pod}`.split(",").at(0),
+				whisha_pod: `${rowPodData.whisha_pod}`.split(",").at(0),
 				target_po_number: `${rowPodData.target_po_number}`,
 			};
 			mergedData.push(mergedRow);

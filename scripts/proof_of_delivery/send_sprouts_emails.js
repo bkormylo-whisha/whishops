@@ -29,20 +29,23 @@ async function sendSproutsInvoiceEmails() {
 	const mailer = await mailSender({ fromFinance: true });
 
 	for (const row of sproutsData) {
+		console.log(row);
 		const invoiceNumber = row.at(0);
 		const recipient = row.at(2);
 		const amountDue = `$${Number(row.at(3)).toFixed(2)}`;
 		const storeName = row.at(4);
-		let pod = row.at(6);
+		let pod = `${row.at(6)}`.split(",").at(0);
+		let pod_2 = `${row.at(7)}`.split(",").at(0);
 		console.log(`Pod: ${pod}`);
-		if (pod !== undefined && pod.includes(",")) {
-			pod = pod.split(",").at(0);
-		}
-		if (!pod || pod === "") {
+		console.log(`Pod2: ${pod_2}`);
+
+		if (!pod || pod === "" || pod === "undefined") {
 			continue;
 		}
+
 		const emailHTML = emailTemplate
 			.replace("{{PodURL}}", pod)
+			.replace("{{PodURL2}}", pod_2)
 			.replaceAll("{{invoice_number}}", invoiceNumber)
 			.replace("{{amount_due}}", amountDue);
 
@@ -62,7 +65,7 @@ async function getDataFromInvoiceMailer() {
 		functionName: "Get Sprouts Emails",
 		inSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
 		inSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.sprouts,
-		inSheetRange: "A2:H",
+		inSheetRange: "A2:I",
 	});
 
 	const sproutsData = await sproutsEmailListExtractor.run();

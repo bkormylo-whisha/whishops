@@ -9,8 +9,7 @@ import * as bq_sync_master_store_list from "./scripts/bq/bq_sync_master_store_li
 import * as bq_sync_optimo_visit_duration from "./scripts/bq/bq_sync_optimo_visit_duration.js";
 import * as cin7_status_update from "./scripts/print_log/cin7_status_update.js";
 import * as cin7_get_printed_orders from "./scripts/print_log/cin7_get_printed_orders.js";
-import * as run_whole_foods_upload from "./sps/run_whole_foods_upload.js";
-import * as run_whole_foods_upload_xml from "./sps/run_whole_foods_upload_xml.js";
+import * as run_whole_foods_upload_xml from "./sps/whole_foods/run_whole_foods_upload_xml.js";
 import * as backup_and_clear_dol from "./scripts/backup/backup_and_clear_dol.js";
 import * as backup_dol from "./scripts/backup/backup_dol.js";
 import * as stocktake_sync from "./scripts/stocktake_sync.js";
@@ -29,6 +28,7 @@ import * as get_orders_cin7_dead from "./scripts/psql/get_orders_cin7_dead.js";
 import * as flip_drafts_cin7 from "./scripts/flip_drafts/flip_drafts_cin7.js";
 import * as fix_invoice_dates from "./scripts/invoice_date/fix_invoice_dates.js";
 import * as cin7_get_orders from "./scripts/sheet_director/cin7_get_orders.js";
+import * as run_geotab from "./scripts/geotab/run_geotab.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -71,10 +71,6 @@ app.get("/cin7_status_update", (req, res) => {
 
 app.get("/cin7_get_printed_orders", (req, res) => {
 	cin7_get_printed_orders.run(req, res);
-});
-
-app.get("/run_whole_foods_upload", (req, res) => {
-	run_whole_foods_upload.run(req, res);
 });
 
 app.get("/run_whole_foods_upload_xml", (req, res) => {
@@ -147,6 +143,10 @@ app.get("/fix_invoice_dates", (req, res) => {
 
 app.get("/cin7_get_orders", (req, res) => {
 	cin7_get_orders.run(req, res);
+});
+
+app.get("/run_geotab", (req, res) => {
+	run_geotab.run(req, res);
 });
 
 app.listen(PORT, () => {
