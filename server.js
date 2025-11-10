@@ -7,6 +7,7 @@ import * as sync_routing_kpi_data from "./scripts/coupler/sync_routing_kpi_data.
 import * as upload_routes_to_optimo from "./scripts/upload_routes_to_optimo.js";
 import * as bq_sync_master_store_list from "./scripts/bq/bq_sync_master_store_list.js";
 import * as bq_sync_optimo_visit_duration from "./scripts/bq/bq_sync_optimo_visit_duration.js";
+import * as bq_sync_optimo_notes from "./scripts/bq/bq_sync_optimo_notes.js";
 import * as cin7_status_update from "./scripts/print_log/cin7_status_update.js";
 import * as cin7_get_printed_orders from "./scripts/print_log/cin7_get_printed_orders.js";
 import * as run_whole_foods_upload_xml from "./sps/whole_foods/run_whole_foods_upload_xml.js";
@@ -20,7 +21,6 @@ import * as send_sprouts_emails from "./scripts/proof_of_delivery/send_sprouts_e
 import * as send_sprouts_delivery_emails from "./scripts/proof_of_delivery/send_sprouts_delivery_emails.js";
 import * as get_optimo_completion_dates from "./scripts/invoice_date/get_optimo_completion_dates.js";
 import * as sync_master_store_list from "./scripts/psql/sync_master_store_list.js";
-import * as bq_sync_optimo_notes from "./scripts/master_visit_log/bq_sync_optimo_notes.js";
 import * as sync_master_visit_log from "./scripts/master_visit_log/sync_master_visit_log.js";
 import * as sync_optimo_data_psql from "./scripts/master_visit_log/sync_optimo_data_psql.js";
 import * as get_orders_cin7 from "./scripts/psql/get_orders_cin7.js";
@@ -29,6 +29,7 @@ import * as flip_drafts_cin7 from "./scripts/flip_drafts/flip_drafts_cin7.js";
 import * as fix_invoice_dates from "./scripts/invoice_date/fix_invoice_dates.js";
 import * as cin7_get_orders from "./scripts/sheet_director/cin7_get_orders.js";
 import * as run_geotab from "./scripts/geotab/run_geotab.js";
+import * as send_purchase_orders from "./sps/peets/send_purchase_orders.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -147,6 +148,11 @@ app.get("/cin7_get_orders", (req, res) => {
 
 app.get("/run_geotab", (req, res) => {
 	run_geotab.run(req, res);
+});
+
+// Peets
+app.get("/send_purchase_orders_peets", (req, res) => {
+	send_purchase_orders.run(req, res);
 });
 
 app.listen(PORT, () => {

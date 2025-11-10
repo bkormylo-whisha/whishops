@@ -98,7 +98,7 @@ async function syncOptimoNotes() {
 
 	// const resultWithHeaders = [headers, ...result];
 	// await uploadToSheet(resultWithHeaders);
-	await uploadToBigQuery(result);
+	// await uploadToBigQuery(result);
 	console.log("Script run complete");
 }
 
@@ -341,13 +341,15 @@ async function fetchOrderDetails(apiKey, orderIds) {
 	return allDetails;
 }
 
-function mergeOrderData(orders, orderCompletionDetails, accountName) {
+async function mergeOrderData(orders, orderCompletionDetails, accountName) {
 	var detailsMap = {};
 	orderCompletionDetails.forEach((detail) => {
 		detailsMap[detail.id] = detail;
 	});
 
-	return orders.map((order) => {
+	let result = [];
+
+	for (const order of orders) {
 		let detail = detailsMap[order.id] || {};
 		let driverName = `${order.scheduleInformation?.driverName ?? " "}`.split(
 			" ",
@@ -363,8 +365,9 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 		}
 		let locationName = order.data.location.locationName.split(":")[1];
 		let orderID = `${order.id}`;
+		console.log(detail.data?.form);
 
-		return [
+		result.push([
 			accountName,
 			order.data.orderNo,
 			order.scheduleInformation?.driverName ?? " ",
@@ -406,8 +409,9 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 			invNumber,
 			repId,
 			orderID,
-		];
-	});
+		]);
+	}
+	return result;
 }
 
 function mapStatus(status) {
@@ -475,14 +479,14 @@ function getCurrentAndTrailingDates() {
 	);
 
 	const monthsToFetch = [
-		{
-			start: formatDateToYYYYMMDD(startOf2ndTrailingMonth),
-			end: formatDateToYYYYMMDD(endOf2ndTrailingMonth),
-		},
-		{
-			start: formatDateToYYYYMMDD(startOfTrailingMonth),
-			end: formatDateToYYYYMMDD(endOfTrailingMonth),
-		},
+		// {
+		// 	start: formatDateToYYYYMMDD(startOf2ndTrailingMonth),
+		// 	end: formatDateToYYYYMMDD(endOf2ndTrailingMonth),
+		// },
+		// {
+		// 	start: formatDateToYYYYMMDD(startOfTrailingMonth),
+		// 	end: formatDateToYYYYMMDD(endOfTrailingMonth),
+		// },
 		{
 			start: formatDateToYYYYMMDD(startOfCurrentMonth),
 			end: formatDateToYYYYMMDD(now),

@@ -9,7 +9,7 @@ dayjs.extend(utc);
 
 export const run = async (req, res) => {
 	try {
-		await flipDraftsCin7();
+		await auditDuplicatesCin7();
 		res.status(200).json({ status: "success" });
 	} catch (error) {
 		console.error("Error during API call:", error);
@@ -17,7 +17,7 @@ export const run = async (req, res) => {
 	}
 };
 
-async function flipDraftsCin7() {
+async function auditDuplicatesCin7() {
 	const printedOrdersJson = await getDraftOrders();
 	console.log(`Got ${printedOrdersJson.length} orders from Cin7`);
 	const formattedData = await filterAndAdjustData(printedOrdersJson);
@@ -27,9 +27,9 @@ async function flipDraftsCin7() {
 		return;
 	}
 
-	if (formattedData.length > 0) {
-		await insertUpdatedOrderDataCin7(formattedData);
-	}
+	// if (formattedData.length > 0) {
+	// 	await insertUpdatedOrderDataCin7(formattedData);
+	// }
 
 	console.log("Script run complete");
 }
@@ -44,13 +44,16 @@ async function getDraftOrders() {
 		Authorization: "Basic " + btoa(username + ":" + password),
 	};
 
+	const startDate = dayjs().utc().subtract(4, "day").toISOString();
+	const endDate = dayjs().utc().subtract(1, "day").toISOString();
+
 	let page = 1;
 	let result = [];
 	let hasMorePages = true;
 	const rowCount = 250;
-	const status = "Draft";
+	// const status = "Draft";
 	while (hasMorePages) {
-		const sales_endpoint = `v1/SalesOrders?fields=id,status,source,total,invoiceDate,modifiedDate&where=status='${status}'&page=${page}&rows=250`;
+		const sales_endpoint = `v1/SalesOrders?fields=id,reference,status,source,total,invoiceDate,modifiedDate&where=createdDate>'${startDate}'&page=${page}&rows=250`;
 
 		try {
 			const response = await fetch(`${url}${sales_endpoint}`, options);
@@ -63,7 +66,7 @@ async function getDraftOrders() {
 			if (data.length > 0) {
 				for (let i = 0; i < data.length; i++) {
 					const row = data[i];
-					if (data.length < rowCount) {
+					if (data.length < rowCount || row.createdDate > endDate) {
 						hasMorePages = false;
 						if (data.length <= i) {
 							break;

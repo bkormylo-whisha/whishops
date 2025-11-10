@@ -78,7 +78,7 @@ async function getFullOrderDataCin7(dateRange) {
 					}
 					result.push(row);
 				}
-				result.push(...data);
+				// result.push(...data);
 				page++;
 			} else {
 				hasMorePages = false;

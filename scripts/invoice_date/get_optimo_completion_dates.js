@@ -4,7 +4,7 @@ import { sheetInserter } from "../../util/sheet_inserter.js";
 import dayjs from "dayjs";
 
 export const run = async (req, res) => {
-	console.log("Running Sync Optimo Notes");
+	console.log("Running Get Optimo Completion Dates");
 	try {
 		await logRuntimeFor(getOptimoCompletionDates);
 		res.status(200).json({ status: "success" });
@@ -84,13 +84,19 @@ async function uploadToSheet(resultWithHeaders) {
 
 async function fetchAllOrders(apiKey) {
 	const dates = getSyncDates();
+	// const dateRanges = getCurrentAndTrailingDates();
 	const searchOrdersUrl = "https://api.optimoroute.com/v1/search_orders";
 	const ordersUrl = `${searchOrdersUrl}?key=${apiKey}`;
 	let allOrders = [];
 	let after_tag = null;
 
+	// for (const dateRange of dateRanges) {
 	do {
 		let payload = {
+			// dateRange: {
+			// 	from: dateRange.start,
+			// 	to: dateRange.end,
+			// },
 			dateRange: {
 				from: dates.start,
 				to: dates.end,
@@ -129,6 +135,7 @@ async function fetchAllOrders(apiKey) {
 			break;
 		}
 	} while (after_tag);
+	// }
 
 	return allOrders;
 }
@@ -183,9 +190,9 @@ async function mergeOrderData(orders, orderCompletionDetails, accountName) {
 		masterStoreMap.set(row.stop_id, row.region);
 	}
 
-	console.log(orders.slice(0, 4));
+	let result = [];
 
-	return orders.map((order) => {
+	for (const order of orders) {
 		const detail = detailsMap.get(order.id) || {};
 		const driverName = `${order.scheduleInformation?.driverName ?? " "}`.split(
 			" ",
@@ -198,13 +205,16 @@ async function mergeOrderData(orders, orderCompletionDetails, accountName) {
 		}
 		const locationName = order.data.location.locationName.split(":")[1];
 
+		if (!detail.data.startTime?.utcTime || !detail.data.endTime?.utcTime)
+			continue;
+
 		const startTime = dayjs(detail.data.startTime.utcTime);
 		const endTime = dayjs(detail.data.endTime.utcTime);
 		const duration = endTime.diff(startTime, "minute");
 
 		const mslData = masterStoreMap.get(order.data.orderNo);
 
-		return [
+		result.push([
 			order.data.date,
 			accountName,
 			repId,
@@ -212,8 +222,10 @@ async function mergeOrderData(orders, orderCompletionDetails, accountName) {
 			stopType,
 			mslData,
 			duration,
-		];
-	});
+		]);
+	}
+
+	return result;
 }
 
 async function getMasterStoreListFromBQ() {
@@ -238,8 +250,116 @@ function getSyncDates() {
 	const now = dayjs();
 	const dateFormat = "YYYY-MM-DD";
 	const dateRangeToFetch = {
-		start: now.subtract(7, "day").format(dateFormat),
+		start: now.subtract(30, "day").format(dateFormat),
 		end: now.subtract(1, "day").format(dateFormat),
 	};
 	return dateRangeToFetch;
+}
+
+function getCurrentAndTrailingDates() {
+	const format = "YYYY-MM-DD";
+	const now = dayjs();
+	const startOfCurrentMonth = dayjs().month(now.month()).date(1);
+	const startOfTrailingMonth = dayjs()
+		.month(now.month() - 1)
+		.date(1);
+	const endOfTrailingMonth = dayjs()
+		.month(now.month())
+		.date(1)
+		.subtract(1, "day");
+	const startOf2ndTrailingMonth = dayjs()
+		.month(now.month() - 2)
+		.date(1);
+	const endOf2ndTrailingMonth = dayjs()
+		.month(now.month() - 1)
+		.date(1)
+		.subtract(1, "day");
+	const startOf3rdTrailingMonth = dayjs()
+		.month(now.month() - 3)
+		.date(1);
+	const endOf3rdTrailingMonth = dayjs()
+		.month(now.month() - 2)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf4thTrailingMonth = dayjs()
+		.month(now.month() - 4)
+		.date(1);
+	const endOf4thTrailingMonth = dayjs()
+		.month(now.month() - 3)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf5thTrailingMonth = dayjs()
+		.month(now.month() - 5)
+		.date(1);
+	const endOf5thTrailingMonth = dayjs()
+		.month(now.month() - 4)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf6thTrailingMonth = dayjs()
+		.month(now.month() - 6)
+		.date(1);
+	const endOf6thTrailingMonth = dayjs()
+		.month(now.month() - 5)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf7thTrailingMonth = dayjs()
+		.month(now.month() - 7)
+		.date(1);
+	const endOf7thTrailingMonth = dayjs()
+		.month(now.month() - 6)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf8thTrailingMonth = dayjs()
+		.month(now.month() - 8)
+		.date(1);
+	const endOf8thTrailingMonth = dayjs()
+		.month(now.month() - 7)
+		.date(1)
+		.subtract(1, "day");
+
+	const monthsToFetch = [
+		// {
+		// 	start: startOf8thTrailingMonth.format(format),
+		// 	end: endOf8thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf7thTrailingMonth.format(format),
+		// 	end: endOf7thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf6thTrailingMonth.format(format),
+		// 	end: endOf6thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf5thTrailingMonth.format(format),
+		// 	end: endOf5thTrailingMonth.format(format),
+		// },
+		{
+			start: startOf4thTrailingMonth.format(format),
+			end: endOf4thTrailingMonth.format(format),
+		},
+		{
+			start: startOf3rdTrailingMonth.format(format),
+			end: endOf3rdTrailingMonth.format(format),
+		},
+		{
+			start: startOf2ndTrailingMonth.format(format),
+			end: endOf2ndTrailingMonth.format(format),
+		},
+		{
+			start: startOfTrailingMonth.format(format),
+			end: endOfTrailingMonth.format(format),
+		},
+		{
+			start: startOfCurrentMonth.format(format),
+			end: now.format(format),
+		},
+	];
+
+	return monthsToFetch;
 }
