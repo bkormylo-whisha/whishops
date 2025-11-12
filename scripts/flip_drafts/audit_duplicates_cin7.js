@@ -38,8 +38,8 @@ async function auditDuplicatesCin7() {
 	await mailer.send({
 		recipients: [
 			"bkormylo@whisha.com",
-			// "wsinks@whisha.com",
-			// "dlindstrom@whisha.com",
+			"wsinks@whisha.com",
+			"dlindstrom@whisha.com",
 			// "tcarlozzi@whisha.com",
 			// "rramirez@whisha.com",
 			// "lklotz@whisha.com",
