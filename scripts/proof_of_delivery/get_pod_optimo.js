@@ -63,8 +63,8 @@ async function getPODOptimo() {
 	}
 
 	const resultWithHeaders = [headers, ...result];
-	await uploadToSheet(resultWithHeaders);
-	// await uploadToBigQuery(result);
+	// await uploadToSheet(resultWithHeaders);
+	await uploadToBigQuery(result);
 	console.log("Script run complete");
 }
 
@@ -74,7 +74,7 @@ async function uploadToBigQuery(data) {
 	const datasetId = "finance";
 	const tableId = "pod_import";
 
-	const fullTableName = `${projectId}.${datasetId}.${tableId}`;
+	// const fullTableName = `${projectId}.${datasetId}.${tableId}`;
 	// const query = `TRUNCATE TABLE \`${fullTableName}\``;
 	// const options = {
 	// 	query: query,
@@ -389,7 +389,157 @@ function getCurrentAndTrailingDates() {
 		.date(1)
 		.subtract(1, "day");
 
+	const startOf9thTrailingMonth = dayjs()
+		.month(now.month() - 9)
+		.date(1);
+	const endOf9thTrailingMonth = dayjs()
+		.month(now.month() - 8)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf10thTrailingMonth = dayjs()
+		.month(now.month() - 10)
+		.date(1);
+	const endOf10thTrailingMonth = dayjs()
+		.month(now.month() - 9)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf11thTrailingMonth = dayjs()
+		.month(now.month() - 11)
+		.date(1);
+	const endOf11thTrailingMonth = dayjs()
+		.month(now.month() - 10)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf12thTrailingMonth = dayjs()
+		.month(now.month() - 12)
+		.date(1);
+	const endOf12thTrailingMonth = dayjs()
+		.month(now.month() - 11)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf13thTrailingMonth = dayjs()
+		.month(now.month() - 13)
+		.date(1);
+	const endOf13thTrailingMonth = dayjs()
+		.month(now.month() - 12)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf14thTrailingMonth = dayjs()
+		.month(now.month() - 14)
+		.date(1);
+	const endOf14thTrailingMonth = dayjs()
+		.month(now.month() - 13)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf15thTrailingMonth = dayjs()
+		.month(now.month() - 15)
+		.date(1);
+	const endOf15thTrailingMonth = dayjs()
+		.month(now.month() - 14)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf16thTrailingMonth = dayjs()
+		.month(now.month() - 16)
+		.date(1);
+	const endOf16thTrailingMonth = dayjs()
+		.month(now.month() - 15)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf17thTrailingMonth = dayjs()
+		.month(now.month() - 17)
+		.date(1);
+	const endOf17thTrailingMonth = dayjs()
+		.month(now.month() - 16)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf18thTrailingMonth = dayjs()
+		.month(now.month() - 18)
+		.date(1);
+	const endOf18thTrailingMonth = dayjs()
+		.month(now.month() - 17)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf19thTrailingMonth = dayjs()
+		.month(now.month() - 19)
+		.date(1);
+	const endOf19thTrailingMonth = dayjs()
+		.month(now.month() - 18)
+		.date(1)
+		.subtract(1, "day");
+
+	const startOf20thTrailingMonth = dayjs()
+		.month(now.month() - 20)
+		.date(1);
+	const endOf20thTrailingMonth = dayjs()
+		.month(now.month() - 19)
+		.date(1)
+		.subtract(1, "day");
+
 	const monthsToFetch = [
+		// {
+		// 	start: startOf20thTrailingMonth.format(format),
+		// 	end: endOf20thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf19thTrailingMonth.format(format),
+		// 	end: endOf19thTrailingMonth.format(format),
+		// },
+
+		// {
+		// 	start: startOf18thTrailingMonth.format(format),
+		// 	end: endOf18thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf17thTrailingMonth.format(format),
+		// 	end: endOf17thTrailingMonth.format(format),
+		// },
+
+		// {
+		// 	start: startOf16thTrailingMonth.format(format),
+		// 	end: endOf16thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf15thTrailingMonth.format(format),
+		// 	end: endOf15thTrailingMonth.format(format),
+		// },
+
+		// {
+		// 	start: startOf14thTrailingMonth.format(format),
+		// 	end: endOf14thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf13thTrailingMonth.format(format),
+		// 	end: endOf13thTrailingMonth.format(format),
+		// },
+
+		// {
+		// 	start: startOf12thTrailingMonth.format(format),
+		// 	end: endOf12thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf11thTrailingMonth.format(format),
+		// 	end: endOf11thTrailingMonth.format(format),
+		// },
+
+		// {
+		// 	start: startOf10thTrailingMonth.format(format),
+		// 	end: endOf10thTrailingMonth.format(format),
+		// },
+		// {
+		// 	start: startOf9thTrailingMonth.format(format),
+		// 	end: endOf9thTrailingMonth.format(format),
+		// },
+
 		// {
 		// 	start: startOf8thTrailingMonth.format(format),
 		// 	end: endOf8thTrailingMonth.format(format),
@@ -398,6 +548,7 @@ function getCurrentAndTrailingDates() {
 		// 	start: startOf7thTrailingMonth.format(format),
 		// 	end: endOf7thTrailingMonth.format(format),
 		// },
+
 		// {
 		// 	start: startOf6thTrailingMonth.format(format),
 		// 	end: endOf6thTrailingMonth.format(format),

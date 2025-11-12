@@ -30,15 +30,15 @@ async function cin7InvoiceDateUpdate() {
 		correctedData.slice(correctedData.length - 4, correctedData.length),
 	);
 
-	await insertUpdatedOrderDataCin7(correctedData);
+	// await insertUpdatedOrderDataCin7(correctedData);
 }
 
 async function getCorrectedData() {
 	const correctionSheetExtractor = sheetExtractor({
 		functionName: "Cin7 Status Update",
-		inSheetID: "1MB8PnIW5LZSciRnJ-caT9-oE8eWhG6-t5X4kGidlzX0",
-		inSheetName: "corrections2",
-		inSheetRange: "A2:D",
+		inSheetID: "1V6A_hfdw1zDRYJBFf1jFjPqO6D48iDHAVOWD2NBT_gk",
+		inSheetName: "Sheet1",
+		inSheetRange: "A2:A",
 		silent: true,
 	});
 
@@ -49,14 +49,14 @@ async function getCorrectedData() {
 	let result = [];
 
 	for (const row of correctedData) {
-		const id = row.at(1);
-		const invoiceDate = dayjs(excelDateToTimestamp(row.at(3)))
-			.add(9, "hour")
-			.toISOString();
+		const id = row.at(0);
+		// const invoiceDate = dayjs(excelDateToTimestamp(row.at(3)))
+		// 	.add(9, "hour")
+		// 	.toISOString();
 
 		const formattedRow = {
 			id: id,
-			invoiceDate: invoiceDate,
+			projectName: "zzz",
 		};
 
 		result.push(formattedRow);

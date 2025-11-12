@@ -91,7 +91,7 @@ async function filterAndAdjustData(printedOrderJson) {
 
 	for (const order of printedOrderJson) {
 		const diff = dayjs(now).diff(order.modifiedDate, "minute");
-		if (!order.source.includes("POS") || order.total < 100.0 || diff < 30) {
+		if (!order.source.includes("POS") || order.total < 100.0 || diff < 15) {
 			continue;
 		}
 		const adjustedOrder = { id: order.id, invoiceDate: tomorrow };

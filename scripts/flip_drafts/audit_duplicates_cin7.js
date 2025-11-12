@@ -1,7 +1,5 @@
 import delay from "../../util/delay.js";
-import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
-import { sheetExtractor } from "../../util/sheet_extractor.js";
-import { sheetInserter } from "../../util/sheet_inserter.js";
+import mailSender from "../../util/mail_sender.js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 
@@ -18,23 +16,42 @@ export const run = async (req, res) => {
 };
 
 async function auditDuplicatesCin7() {
-	const printedOrdersJson = await getDraftOrders();
-	console.log(`Got ${printedOrdersJson.length} orders from Cin7`);
-	const formattedData = await filterAndAdjustData(printedOrdersJson);
+	const dateRange = getDateRange();
+	const ordersJson = await getRecentOrders(dateRange);
+	console.log(`Got ${ordersJson.length} orders from Cin7`);
+	const duplicates = await createDuplicateList(ordersJson);
 
-	if (printedOrdersJson.length === 0) {
+	if (ordersJson.length === 0) {
 		console.log("No matching orders found");
 		return;
 	}
 
-	// if (formattedData.length > 0) {
-	// 	await insertUpdatedOrderDataCin7(formattedData);
-	// }
+	const dateFormat = "MM/DD/YYYY";
+	const bodyText =
+		`Dates Searched: ${dayjs(dateRange.start).format(dateFormat)} - ${dayjs(dateRange.end).format(dateFormat)}` +
+		"\n\n" +
+		"The following references exist twice in Cin7 on open orders:" +
+		"\n" +
+		`${duplicates.map((order) => order.ref).join("\n")}`;
+
+	const mailer = await mailSender();
+	await mailer.send({
+		recipients: [
+			"bkormylo@whisha.com",
+			// "wsinks@whisha.com",
+			// "dlindstrom@whisha.com",
+			// "tcarlozzi@whisha.com",
+			// "rramirez@whisha.com",
+			// "lklotz@whisha.com",
+		],
+		subject: `Cin7 - Duplicate Orders Detected ${dayjs(dateRange.start).format(dateFormat)} - ${dayjs(dateRange.end).format(dateFormat)}`,
+		bodyText: bodyText,
+	});
 
 	console.log("Script run complete");
 }
 
-async function getDraftOrders() {
+async function getRecentOrders(dateRange) {
 	const url = "https://api.cin7.com/api/";
 	const username = process.env.CIN7_USERNAME;
 	const password = process.env.CIN7_PASSWORD;
@@ -44,16 +61,12 @@ async function getDraftOrders() {
 		Authorization: "Basic " + btoa(username + ":" + password),
 	};
 
-	const startDate = dayjs().utc().subtract(4, "day").toISOString();
-	const endDate = dayjs().utc().subtract(1, "day").toISOString();
-
 	let page = 1;
 	let result = [];
 	let hasMorePages = true;
 	const rowCount = 250;
-	// const status = "Draft";
 	while (hasMorePages) {
-		const sales_endpoint = `v1/SalesOrders?fields=id,reference,status,source,total,invoiceDate,modifiedDate&where=createdDate>'${startDate}'&page=${page}&rows=250`;
+		const sales_endpoint = `v1/SalesOrders?fields=id,reference,invoiceNumber,modifiedDate&where=createdDate>'${dateRange.start}' AND status<>'Void'&order=createdDate&page=${page}&rows=250`;
 
 		try {
 			const response = await fetch(`${url}${sales_endpoint}`, options);
@@ -61,12 +74,12 @@ async function getDraftOrders() {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 			const data = await response.json();
-			await delay(1000);
+			await delay(200);
 
 			if (data.length > 0) {
 				for (let i = 0; i < data.length; i++) {
 					const row = data[i];
-					if (data.length < rowCount || row.createdDate > endDate) {
+					if (data.length < rowCount || row.createdDate > dateRange.end) {
 						hasMorePages = false;
 						if (data.length <= i) {
 							break;
@@ -87,85 +100,37 @@ async function getDraftOrders() {
 	return result;
 }
 
-async function filterAndAdjustData(printedOrderJson) {
+async function createDuplicateList(printedOrderJson) {
 	let result = [];
-	const now = dayjs.utc();
-	const tomorrow = dayjs().utc().add(1, "day").toISOString();
+	const freqMap = new Map();
 
 	for (const order of printedOrderJson) {
-		const diff = dayjs(now).diff(order.modifiedDate, "minute");
-		if (!order.source.includes("POS") || order.total < 100.0 || diff < 30) {
-			continue;
+		if (!freqMap.get(order.reference)) {
+			freqMap.set(order.reference, 1);
+		} else {
+			freqMap.set(order.reference, freqMap.get(order.reference) + 1);
+			const duplicateOrder = {
+				id: order.id,
+				ref: order.reference,
+				invoiceNumber: order.invoiceNumber,
+				count: freqMap.get(order.reference),
+			};
+			result.push(duplicateOrder);
 		}
-		const adjustedOrder = { id: order.id, invoiceDate: tomorrow };
-		result.push(adjustedOrder);
 	}
 
 	console.log(result);
+	console.log(`Found ${result.length} duplicates`);
 
 	return result;
 }
 
-async function insertUpdatedOrderDataCin7(updatedRows) {
-	const url = "https://api.cin7.com/api/";
-	const username = process.env.CIN7_USERNAME;
-	const password = process.env.CIN7_PASSWORD;
-	const put_endpoint = "v1/SalesOrders";
-	const BATCH_SIZE = 50;
+function getDateRange() {
+	const startDate = dayjs().utc().subtract(7, "day").toISOString();
+	const endDate = dayjs().utc().subtract(1, "day").toISOString();
 
-	console.log("Uploading to Cin7");
-	const allResults = [];
-
-	for (let i = 0; i < updatedRows.length; i += BATCH_SIZE) {
-		const batch = updatedRows.slice(i, i + BATCH_SIZE);
-
-		const putOptions = {
-			method: "PUT",
-			headers: {
-				Authorization: "Basic " + btoa(username + ":" + password),
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(batch),
-		};
-		try {
-			await delay(1000);
-			const putResponse = await fetch(`${url}${put_endpoint}`, putOptions);
-			const response = await putResponse.json();
-			allResults.push(response);
-		} catch (e) {
-			console.error(`Batch starting at index ${i} failed:`, error.message);
-			allResults.push({ error: error.message, index: i });
-		}
-	}
-
-	const flippedOrderCount = updatedRows.length;
-	console.log(`Completed Upload of ${flippedOrderCount} items`);
-
-	logFlippedOrders(flippedOrderCount);
-}
-
-async function logFlippedOrders(flipCount) {
-	let ordersFlippedCount = 0;
-	const logExtractor = sheetExtractor({
-		functionName: "Get Flipped Order Count",
-		inSheetID: SHEET_SCHEMAS.WHISHOPS_LOGS.prod_id,
-		inSheetName: SHEET_SCHEMAS.WHISHOPS_LOGS.pages.dashboard,
-		inSheetRange: "A2",
-		silent: true,
-	});
-	const flippedOrders = await logExtractor.run();
-
-	ordersFlippedCount += Number(flippedOrders[0][0]);
-	ordersFlippedCount += flipCount;
-
-	const logInserter = sheetInserter({
-		functionName: "Update Flipped Order Count",
-		outSheetID: SHEET_SCHEMAS.WHISHOPS_LOGS.prod_id,
-		outSheetName: SHEET_SCHEMAS.WHISHOPS_LOGS.pages.dashboard,
-		outSheetRange: "A2",
-		wipePreviousData: true,
-		silent: true,
-	});
-
-	await logInserter.run([[ordersFlippedCount]]);
+	return {
+		start: startDate,
+		end: endDate,
+	};
 }

@@ -296,6 +296,9 @@ export const SHEET_SCHEMAS = {
 			sprouts: "Sprouts",
 			sprouts_by_mail: "Sprouts by mail",
 			whole_foods: "Whole Foods",
+			target: "Target",
+			kroger: "Kroger",
+			safeway: "Safeway",
 		},
 	},
 

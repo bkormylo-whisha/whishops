@@ -26,6 +26,7 @@ import * as sync_optimo_data_psql from "./scripts/master_visit_log/sync_optimo_d
 import * as get_orders_cin7 from "./scripts/psql/get_orders_cin7.js";
 import * as get_orders_cin7_dead from "./scripts/psql/get_orders_cin7_dead.js";
 import * as flip_drafts_cin7 from "./scripts/flip_drafts/flip_drafts_cin7.js";
+import * as audit_duplicates_cin7 from "./scripts/flip_drafts/audit_duplicates_cin7.js";
 import * as fix_invoice_dates from "./scripts/invoice_date/fix_invoice_dates.js";
 import * as cin7_get_orders from "./scripts/sheet_director/cin7_get_orders.js";
 import * as run_geotab from "./scripts/geotab/run_geotab.js";
@@ -132,6 +133,10 @@ app.get("/get_optimo_completion_dates", (req, res) => {
 
 app.get("/flip_drafts_cin7", (req, res) => {
 	flip_drafts_cin7.run(req, res);
+});
+
+app.get("/audit_duplicates_cin7", (req, res) => {
+	audit_duplicates_cin7.run(req, res);
 });
 
 app.get("/sync_optimo_data_psql", (req, res) => {

@@ -178,19 +178,19 @@ async function formatCin7Data(data) {
 				},
 				Address: [
 					{
-						AddressTypeCode: "ST", // Ship To
+						AddressTypeCode: "ST",
 						AddressName: salesOrder.deliveryCompany.split("-").at(-1).trim(),
 					},
 					{
-						AddressTypeCode: "NES", // New Store?
+						AddressTypeCode: "NES",
 						LocationCodeQualifier: 92,
 						AddressLocationNumber: salesOrder.lastName.split(" ").at(2),
 						AddressName: salesOrder.deliveryCompany.split("-").at(-1).trim(),
 					},
 					{
-						AddressTypeCode: "VN", // Vendor (should be Whisha Info)
-						LocationCodeQualifier: 91, // Sample had 92 but that should be for buyer location
-						AddressLocationNumber: "0000235079", // No idea what this is for us
+						AddressTypeCode: "VN",
+						LocationCodeQualifier: 91,
+						AddressLocationNumber: "0000235079",
 						AddressName: "Whisha - LLC",
 					},
 				],

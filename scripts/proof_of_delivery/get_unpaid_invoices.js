@@ -42,6 +42,18 @@ async function getUnpaidInvoices() {
 		sheetData.wholeFoodsData,
 		podMap,
 	);
+	const mergedTargetData = await mergeSheetDataWithPOD(
+		sheetData.targetData,
+		podMap,
+	);
+	const mergedKrogerData = await mergeSheetDataWithPOD(
+		sheetData.krogerData,
+		podMap,
+	);
+	const mergedSafewayData = await mergeSheetDataWithPOD(
+		sheetData.safewayData,
+		podMap,
+	);
 
 	const sproutsSheetInserter = sheetInserter({
 		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
@@ -62,6 +74,33 @@ async function getUnpaidInvoices() {
 	wholeFoodsSheetInserter.run(
 		mergedWholeFoodsData.map((obj) => Object.values(obj)),
 	);
+
+	const targetSheetInserter = sheetInserter({
+		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
+		outSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.target,
+		outSheetRange: "A2:I",
+		wipePreviousData: true,
+	});
+
+	targetSheetInserter.run(mergedTargetData.map((obj) => Object.values(obj)));
+
+	const krogerSheetInserter = sheetInserter({
+		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
+		outSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.kroger,
+		outSheetRange: "A2:I",
+		wipePreviousData: true,
+	});
+
+	krogerSheetInserter.run(mergedKrogerData.map((obj) => Object.values(obj)));
+
+	const safewaySheetInserter = sheetInserter({
+		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
+		outSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.safeway,
+		outSheetRange: "A2:I",
+		wipePreviousData: true,
+	});
+
+	safewaySheetInserter.run(mergedSafewayData.map((obj) => Object.values(obj)));
 }
 
 async function getDataFromArDashboard() {
@@ -79,7 +118,11 @@ async function getDataFromArDashboard() {
 	const filteredData = overdueInvoiceData.filter(
 		(row) =>
 			row.at(9) === "Unpaid" &&
-			(row.at(12).includes("Sprouts") || row.at(12).includes("Whole Foods")) &&
+			(row.at(12).includes("Sprouts") ||
+				row.at(12).includes("Whole Foods") ||
+				row.at(12).includes("Kroger") ||
+				row.at(12).includes("Safeway") ||
+				row.at(12).includes("Target")) &&
 			row.at(17) !== "Accounting" &&
 			row.at(17) !== "Dispatch and Delivery Issues",
 	);
@@ -87,6 +130,9 @@ async function getDataFromArDashboard() {
 
 	let sproutsData = [];
 	let wholeFoodsData = [];
+	let targetData = [];
+	let krogerData = [];
+	let safewayData = [];
 
 	for (const row of filteredData) {
 		const invoiceNumber = row.at(11);
@@ -106,7 +152,7 @@ async function getDataFromArDashboard() {
 				storeName: storeName.split(":").at(-1),
 			};
 			sproutsData.push(formattedRow);
-		} else {
+		} else if (row.at(12).includes("Whole Foods")) {
 			const formattedRow = {
 				id: invoiceNumber,
 				date: date,
@@ -114,13 +160,43 @@ async function getDataFromArDashboard() {
 				amount: amount,
 			};
 			wholeFoodsData.push(formattedRow);
+		} else if (row.at(12).includes("Target")) {
+			const formattedRow = {
+				id: invoiceNumber,
+				date: date,
+				email: storeName,
+				amount: amount,
+			};
+			targetData.push(formattedRow);
+		} else if (row.at(12).includes("Kroger")) {
+			const formattedRow = {
+				id: invoiceNumber,
+				date: date,
+				email: storeName,
+				amount: amount,
+			};
+			krogerData.push(formattedRow);
+		} else if (row.at(12).includes("Safeway")) {
+			const formattedRow = {
+				id: invoiceNumber,
+				date: date,
+				email: storeName,
+				amount: amount,
+			};
+			safewayData.push(formattedRow);
 		}
 	}
 
 	console.log(sproutsData.length);
 	console.log(wholeFoodsData.length);
 
-	return { sproutsData: sproutsData, wholeFoodsData: wholeFoodsData };
+	return {
+		sproutsData: sproutsData,
+		wholeFoodsData: wholeFoodsData,
+		targetData: targetData,
+		krogerData: krogerData,
+		safewayData: safewayData,
+	};
 }
 
 async function getPodDataFromBQ() {
@@ -129,7 +205,7 @@ async function getPodDataFromBQ() {
 		const query = `
 			SELECT invoice_number, customer_pod, whisha_pod, order_date, target_po_number
 			FROM \`whishops.finance.pod_import\`
-            WHERE LEFT(stop_id, 2) IN ('SP', 'WF')
+            WHERE LEFT(stop_id, 2) IN ('SP', 'WF', 'KS', 'TG', 'SA')
 		`;
 
 		console.log("Executing query");
