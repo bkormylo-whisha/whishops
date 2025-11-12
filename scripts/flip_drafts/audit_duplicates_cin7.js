@@ -66,7 +66,7 @@ async function getRecentOrders(dateRange) {
 	let hasMorePages = true;
 	const rowCount = 250;
 	while (hasMorePages) {
-		const sales_endpoint = `v1/SalesOrders?fields=id,reference,invoiceNumber,modifiedDate&where=createdDate>'${dateRange.start}' AND status<>'Void'&order=createdDate&page=${page}&rows=250`;
+		const sales_endpoint = `v1/SalesOrders?fields=id,reference,invoiceNumber,createdDate,modifiedDate&where=createdDate>'${dateRange.start}' AND status<>'Void'&order=createdDate&page=${page}&rows=250`;
 
 		try {
 			const response = await fetch(`${url}${sales_endpoint}`, options);
@@ -101,7 +101,7 @@ async function getRecentOrders(dateRange) {
 }
 
 async function createDuplicateList(printedOrderJson) {
-	let result = [];
+	let duplicates = [];
 	const freqMap = new Map();
 
 	for (const order of printedOrderJson) {
@@ -115,14 +115,25 @@ async function createDuplicateList(printedOrderJson) {
 				invoiceNumber: order.invoiceNumber,
 				count: freqMap.get(order.reference),
 			};
-			result.push(duplicateOrder);
+			duplicates.push(duplicateOrder);
 		}
 	}
 
-	console.log(result);
-	console.log(`Found ${result.length} duplicates`);
+	let checkedDuplicates = [];
+	for (const duplicate of duplicates) {
+		const occurences = printedOrderJson.filter(
+			(order) => order.reference === duplicate.ref,
+		);
 
-	return result;
+		if (occurences.at(0).createdDate === occurences.at(1).createdDate) {
+			checkedDuplicates.push(duplicate);
+		}
+	}
+
+	console.log(duplicates);
+	console.log(`Found ${duplicates.length} duplicates`);
+
+	return duplicates;
 }
 
 function getDateRange() {
