@@ -31,6 +31,7 @@ import * as fix_invoice_dates from "./scripts/invoice_date/fix_invoice_dates.js"
 import * as cin7_get_orders from "./scripts/sheet_director/cin7_get_orders.js";
 import * as run_geotab from "./scripts/geotab/run_geotab.js";
 import * as send_purchase_orders from "./sps/peets/send_purchase_orders.js";
+import * as optimo_get_notes from "./scripts/sheet_director/optimo_get_notes.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -153,6 +154,10 @@ app.get("/cin7_get_orders", (req, res) => {
 
 app.get("/run_geotab", (req, res) => {
 	run_geotab.run(req, res);
+});
+
+app.get("/optimo_get_notes", (req, res) => {
+	optimo_get_notes.run(req, res);
 });
 
 // Peets

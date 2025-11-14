@@ -78,8 +78,8 @@ async function insertUpdatedOrderDataCin7(updatedRows) {
 
 	for (let i = 0; i < updatedRows.length; i += BATCH_SIZE) {
 		const batch = updatedRows.slice(i, i + BATCH_SIZE);
+		console.log(`Batch ${batchCount}`);
 		batchCount++;
-		console.log(batchCount);
 
 		const putOptions = {
 			method: "PUT",

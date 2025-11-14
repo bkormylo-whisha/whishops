@@ -32,6 +32,7 @@ export default async function mailSender(mailerParams) {
 		const recipients = params.recipients;
 		const attachmentName = params.attachmentName ?? "file.csv";
 		const attachmentPath = params.attachmentPath ?? "";
+		const attachments = params.attachments ?? [];
 		const subject = params.subject ?? "Nodemailer Email";
 		const bodyText = params.bodyText ?? "";
 		const bodyHtml = params.html ?? "";
@@ -55,6 +56,8 @@ export default async function mailSender(mailerParams) {
 					path: attachmentPath,
 				},
 			];
+		} else {
+			mailOptions.attachments = attachments;
 		}
 
 		transporter.sendMail(mailOptions, (error, info) => {

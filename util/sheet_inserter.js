@@ -22,6 +22,7 @@ export function sheetInserter(params) {
 		const timestampCol = params.timestampCol ?? 0;
 
 		const wipePreviousData = params.wipePreviousData ?? false;
+		const wipeAfterPush = params.wipeAfterPush ?? false;
 		const append = params.append ?? false;
 
 		const inSheetData = dataToInsert;
@@ -37,6 +38,14 @@ export function sheetInserter(params) {
 
 			if (wipePreviousData) {
 				!silent && console.log("Wiping previous data from output sheet...");
+				const initialRow = outSheetRange
+					.split(":")
+					.at(0)
+					.replace(/[a-zA-Z]/g, "");
+				const clearRange = outSheetRange
+					.split(":")
+					.map((col) => col.replace(/[^a-zA-Z]/g, ""));
+				const newRange = `${clearRange.at(0)}${inSheetData.length + initialRow}:${clearRange.at(1)}`;
 				const clearResponse = await sheets.spreadsheets.values.clear({
 					spreadsheetId: outSheetID,
 					range: `${outSheetName}!${outSheetRange}`,
@@ -84,6 +93,27 @@ export function sheetInserter(params) {
 						console.log(
 							`Updated cells: ${updateResponse.data.totalUpdatedCells}`,
 						);
+
+					if (wipeAfterPush) {
+						!silent && console.log("Wiping previous data from output sheet...");
+						const initialRow = Number(
+							outSheetRange
+								.split(":")
+								.at(0)
+								.replace(/[a-zA-Z]/g, ""),
+						);
+						console.log(inSheetData.length);
+						const clearRange = outSheetRange
+							.split(":")
+							.map((col) => col.replace(/[^a-zA-Z]/g, ""));
+						const newRange = `${clearRange.at(0)}${inSheetData.length + initialRow}:${clearRange.at(1)}`;
+						const clearResponse = await sheets.spreadsheets.values.clear({
+							spreadsheetId: outSheetID,
+							range: `${outSheetName}!${newRange}`,
+						});
+						!silent &&
+							console.log(`Cleared range: ${clearResponse.data.clearedRange}`);
+					}
 				}
 			}
 		} catch (e) {
