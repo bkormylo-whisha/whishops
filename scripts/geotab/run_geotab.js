@@ -1,15 +1,12 @@
-import * as fs from "fs";
-import * as convert from "xml-js";
-import { Client } from "basic-ftp";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
-import mailSender from "../../util/mail_sender.js";
 import { sheetInserter } from "../../util/sheet_inserter.js";
-import delay from "../../util/delay.js";
 import { sheetExtractor } from "../../util/sheet_extractor.js";
 
 dayjs.extend(utc);
 
+// Has a bunch of sample calls from testing GEOTAB API,
+// Tanner might use this once in awhile to check driver status
 export const run = async (req, res) => {
 	try {
 		await runGeotab();

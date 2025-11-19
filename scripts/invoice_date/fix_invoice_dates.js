@@ -6,6 +6,7 @@ import excelDateToTimestamp from "../../util/excel_date_to_timestamp.js";
 
 dayjs.extend(customParseFormat);
 
+// Used to send data to Cin7 once
 export const run = async (req, res) => {
 	try {
 		await cin7InvoiceDateUpdate();

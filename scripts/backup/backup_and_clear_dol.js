@@ -1,13 +1,3 @@
-// OVERVIEW
-
-// Need to first move the entire backup table to BQ, make a table structure
-// Uniquely identify each order by Invoice Number within BQ
-
-// Pull the entire set of data from WADC
-// Filter all orders that are at least two weeks old
-// Insert them into the table, update Invoice Numbers that already exist
-
-// Clear the rows from the original table
 import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { BigQuery } from "@google-cloud/bigquery";
 import { sheetExtractor } from "../../util/sheet_extractor.js";
@@ -16,6 +6,7 @@ import { driveUploader } from "../../util/drive_uploader.js";
 import * as fs from "fs";
 import dayjs from "dayjs";
 
+// Dead unless Mora doesn't get it done
 export const run = async (req, res) => {
 	try {
 		await backupAndClearDol();

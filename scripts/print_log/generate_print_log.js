@@ -1,6 +1,7 @@
 import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { sheetExtractor } from "../../util/sheet_extractor.js";
 import { sheetInserter } from "../../util/sheet_inserter.js";
+import getUsernameMapFromCin7 from "../../util/cin7/get_username_map.js";
 import { BigQuery } from "@google-cloud/bigquery";
 import delay from "../../util/delay.js";
 import dayjs from "dayjs";
@@ -8,7 +9,7 @@ import excelDateToTimestamp from "../../util/excel_date_to_timestamp.js";
 
 export const run = async (req, res) => {
 	try {
-		await cin7GetPrintedOrders();
+		await generatePrintLog();
 		res.status(200).json({ status: "success" });
 	} catch (error) {
 		console.error("Error during API call:", error);
@@ -16,7 +17,7 @@ export const run = async (req, res) => {
 	}
 };
 
-async function cin7GetPrintedOrders() {
+async function generatePrintLog() {
 	console.log("Running Script: Cin7 Get Printed Orders");
 	const printedOrdersJson = await getPrintedOrdersCin7();
 	console.log(`Got ${printedOrdersJson.length} printed orders from Cin7`);
@@ -238,44 +239,6 @@ async function dividePrintedOrdersByRegion(formattedPrintedOrderJson) {
 	}
 
 	return regions;
-}
-
-async function getUsernameMapFromCin7() {
-	const url = "https://api.cin7.com/api/";
-	const username = process.env.CIN7_USERNAME;
-	const password = process.env.CIN7_PASSWORD;
-
-	let options = {};
-	options.headers = {
-		Authorization: "Basic " + btoa(username + ":" + password),
-	};
-
-	let result = [];
-	const user_endpoint = `v1/Users?fields=id,firstName,lastName,isActive`;
-
-	try {
-		const response = await fetch(`${url}${user_endpoint}`, options);
-		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
-		}
-		const data = await response.json();
-		await delay(1000);
-
-		for (let i = 0; i < data.length; i++) {
-			const row = data[i];
-			result.push(row);
-		}
-	} catch (error) {
-		console.error("Failed to fetch data:", error);
-	}
-
-	const nameMap = new Map();
-	for (const user of result) {
-		const fullName = `${user.firstName} ${user.lastName}`;
-		nameMap.set(user.id, fullName);
-	}
-
-	return nameMap;
 }
 
 async function getMasterStoreListFromBQ() {

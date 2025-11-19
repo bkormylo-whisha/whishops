@@ -3,6 +3,7 @@ import { logRuntimeFor } from "../../util/log_runtime_for.js";
 import { sheetInserter } from "../../util/sheet_inserter.js";
 import dayjs from "dayjs";
 
+// Used for a report for Tanner
 export const run = async (req, res) => {
 	console.log("Running Get Optimo Completion Dates");
 	try {

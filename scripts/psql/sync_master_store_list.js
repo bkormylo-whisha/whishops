@@ -56,14 +56,12 @@ async function syncMasterStoreListPsql() {
 
 async function getMasterStoreList() {
 	const mslExtractor = sheetExtractor({
-		functionName: "Sync Master Store List",
-		inSheetID: SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.prod_id,
+		inSheetID: SHEET_SCHEMAS.WHISHACCEL_ISOLATED_VERSION.prod_id,
 		inSheetName:
-			SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.pages.master_store_list,
-		inSheetRange: "A5:AC",
+			SHEET_SCHEMAS.WHISHACCEL_ISOLATED_VERSION.pages.master_store_list,
+		inSheetRange: "A5:AC6393",
 	});
 
-	console.log("Getting initial data from Master Store List");
 	let masterStoreListData = [[]];
 	masterStoreListData = await mslExtractor.run();
 
@@ -73,6 +71,15 @@ async function getMasterStoreList() {
 async function formatAndCleanData(data) {
 	const result = [];
 	for (const row of data) {
+		if (row.at(0) === "") {
+			continue;
+		}
+		const rawExcelDate = row.at(24);
+		let lastVisitValue = null;
+
+		if (rawExcelDate !== "" && !Number.isNaN(Number(rawExcelDate))) {
+			lastVisitValue = excelDateToTimestamp(rawExcelDate);
+		}
 		const rowObj = {
 			stop_id: row.at(0),
 			store: row.at(1),
@@ -96,14 +103,15 @@ async function formatAndCleanData(data) {
 			sprint: ensureNumber(row.at(21)),
 			supply: ensureNumber(row.at(22)),
 			cin7_name: row.at(23),
-			last_visit: excelDateToTimestamp(row.at(24)),
-			on_gs: row.at(25),
-			on_fss: row.at(26),
+			last_visit: lastVisitValue,
+			on_gs: row.at(25) === "" ? false : row.at(25),
+			on_fss: row.at(26) === "" ? false : row.at(26),
 			address_full: row.at(27),
 			ship_eligible: row.at(28),
 		};
 		result.push(rowObj);
 	}
+	console.log(result.length);
 
 	return result;
 }
@@ -130,31 +138,25 @@ async function uploadToDB(data) {
 
 		for (const storeData of rawBatch) {
 			if (
-				!storeData.at(0) ||
-				storeData.at(0) === "" ||
-				storeData.at(0) === "NA"
+				!storeData.stop_id ||
+				storeData.stop_id === "" ||
+				storeData.stop_id === "NA"
 			) {
 				continue;
 			}
 
-			if (storeData.at(23) === "" || storeData.at(23) === "Not in Cin7") {
-				continue;
-			}
+			// if (storeData.cin7_name === "" || storeData.cin7_name === "Not in Cin7") {
+			// 	continue;
+			// }
 
 			const placeholders = [];
 			for (let j = 0; j < totalColumns; j++) {
 				localValueIndex++;
 				placeholders.push(`$${localValueIndex}`);
 			}
-			if (cleanedRow.length !== totalColumns) {
-				console.log(storeData);
-				console.error(
-					`Row data is incomplete! Expected ${totalColumns}, got ${cleanedRow.length}`,
-				);
-			}
 
 			rowPlaceholders.push(`(${placeholders.join(", ")})`);
-			allValues.push(...cleanedRow);
+			allValues.push(...Object.values(storeData));
 		}
 
 		if (rowPlaceholders.length === 0) {
@@ -210,27 +212,3 @@ function convertDecimalToTime(decimalTime) {
 
 	return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
 }
-
-function formatExcelDate(date) {
-	const rawValue = `${date}`;
-	if (
-		!rawValue ||
-		rawValue === "" ||
-		rawValue === "NA" ||
-		rawValue.toLowerCase() === "null"
-	) {
-		return null;
-	}
-
-	const dateObj = dayjs(excelDateToTimestamp(Number(rawValue))).toDate();
-	if (Number.isNaN(dateObj.getTime())) {
-		console.warn(`Invalid date value found: ${rawValue}. Inserting NULL.`);
-		return null;
-	}
-
-	return dateObj;
-}
-
-// Duplicates in MSL
-// Vons - 2049
-// Safeway - 1826

@@ -75,10 +75,6 @@ async function getFullOrderDataCin7(dateRange) {
 			if (data.length > 0) {
 				for (let i = 0; i < data.length; i++) {
 					const row = data[i];
-					if (`${row["createdDate"]}`.includes(dateRange.end)) {
-						hasMorePages = false;
-						break;
-					}
 					result.push(row);
 				}
 				page++;
@@ -166,16 +162,16 @@ async function formatCin7Data(data) {
 		for (let i = 1; i <= purchaseOrder.lineItems.length; i++) {
 			const lineItem = purchaseOrder.lineItems.at(i - 1);
 
-			// Filters out items we shouldn't be selling anyways
-			// const barcode = `${lineItem.barcode ?? ""}`;
-			// if (barcode.length <= 11) continue;
+			// Filters out short barcodes, need to handle bulk items
+			const barcode = `${lineItem.barcode.replaceAll("-", "") ?? ""}`;
+			if (barcode.length <= 11) continue;
 
 			const formattedItem = {
 				OrderLine: {
 					LineSequenceNumber: i, // Increment per line
 					BuyerPartNumber: lineItem.code, // Whisha Product Code, possibly switch with below
 					VendorPartNumber: lineItem.supplierCode, // Peets Product Code
-					ConsumerPackageCode: lineItem.barcode.replaceAll("-", ""), // Barcode
+					ConsumerPackageCode: barcode, // Barcode
 					OrderQty: lineItem.qty,
 					OrderQtyUOM: "EA",
 					PurchasePrice: lineItem.unitPrice,

@@ -60,7 +60,7 @@ export default async function mailSender(mailerParams) {
 			mailOptions.attachments = attachments;
 		}
 
-		transporter.sendMail(mailOptions, (error, info) => {
+		await transporter.sendMail(mailOptions, (error, info) => {
 			if (error) {
 				console.error("Error sending email: ", error);
 			} else {

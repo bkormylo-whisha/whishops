@@ -7,6 +7,7 @@ import utc from "dayjs/plugin/utc.js";
 
 dayjs.extend(utc);
 
+// ACTIVE, runs every 15 minutes, called by CRON on Norcal-Debian (Laptop in closet)
 export const run = async (req, res) => {
 	try {
 		await flipDraftsCin7();

@@ -1,6 +1,7 @@
 import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { sheetCoordinator } from "../../util/sheet_coordinator.js";
 
+// SCOTT NEEDS THIS
 export const run = async (req, res) => {
 	try {
 		await syncEoqRtgWeeklyCoverage();

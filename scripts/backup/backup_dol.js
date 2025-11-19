@@ -4,6 +4,7 @@ import { driveUploader } from "../../util/drive_uploader.js";
 import * as fs from "fs";
 import dayjs from "dayjs";
 
+// Dead unless Mora doesn't get it done
 export const run = async (req, res) => {
 	try {
 		await backupDol();

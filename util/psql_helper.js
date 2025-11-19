@@ -36,6 +36,7 @@ export default async function psqlHelper() {
 
 			console.log("Successfully connected to Cloud SQL PostgreSQL");
 			client.release(); // Release the client back to the pool
+			return result;
 		} catch (err) {
 			console.error("Error connecting to Cloud SQL PostgreSQL:", err);
 		}

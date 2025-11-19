@@ -5,6 +5,7 @@ import utc from "dayjs/plugin/utc.js";
 
 dayjs.extend(utc);
 
+// ACTIVE, runs daily at 7 AM
 export const run = async (req, res) => {
 	try {
 		await auditDuplicatesCin7();

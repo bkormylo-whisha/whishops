@@ -20,7 +20,7 @@ CREATE TABLE public.master_store_list (
     direct SMALLINT,
     sprint SMALLINT,
     supply SMALLINT,
-    cin7_name TEXT UNIQUE,
+    cin7_name TEXT,
     last_visit DATE,
     on_gs BOOLEAN,
     on_fss BOOLEAN,

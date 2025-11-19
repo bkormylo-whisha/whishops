@@ -3,6 +3,7 @@ import { sheetExtractor } from "../../util/sheet_extractor.js";
 import delay from "../../util/delay.js";
 import dayjs from "dayjs";
 
+// DO NOT USE,
 export const run = async (req, res) => {
 	try {
 		await cin7InvoiceDateUpdate();
@@ -22,7 +23,7 @@ async function cin7InvoiceDateUpdate() {
 		return;
 	}
 
-	await insertUpdatedOrderDataCin7(directOrderLogData);
+	// await insertUpdatedOrderDataCin7(directOrderLogData);
 }
 
 async function getDataFromDOL() {

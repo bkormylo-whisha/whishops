@@ -1,6 +1,7 @@
 import { SHEET_SCHEMAS } from "../../util/sheet_schemas.js";
 import { sheetCoordinator } from "../../util/sheet_coordinator.js";
 
+// No one uses this actively, it's a backup if the App Script one is too slow
 export const run = async (req, res) => {
 	try {
 		await syncNorcalDirectOrderLog();
