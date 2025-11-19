@@ -13,7 +13,8 @@ import * as run_geotab from "./scripts/geotab/run_geotab.js";
 // Cin7 Automation
 import * as flip_drafts_cin7 from "./scripts/flip_drafts/flip_drafts_cin7.js";
 import * as audit_duplicates_cin7 from "./scripts/flip_drafts/audit_duplicates_cin7.js";
-import * as audit_missing_po_cin7 from "./scripts/flip_drafts/audit_missing_po_cin7.js";
+import * as audit_missing_po_whole_foods_cin7 from "./scripts/flip_drafts/audit_missing_po_whole_foods_cin7.js";
+import * as audit_missing_po_target_cin7 from "./scripts/flip_drafts/audit_missing_po_target_cin7.js";
 
 // SPS
 import * as send_purchase_orders from "./sps/peets/send_purchase_orders.js";
@@ -31,6 +32,7 @@ import * as get_pod_cin7 from "./scripts/proof_of_delivery/get_pod_cin7.js";
 import * as get_unpaid_invoices from "./scripts/proof_of_delivery/get_unpaid_invoices.js";
 import * as send_sprouts_emails from "./scripts/proof_of_delivery/send_sprouts_emails.js";
 import * as send_sprouts_delivery_emails from "./scripts/proof_of_delivery/send_sprouts_delivery_emails.js";
+import * as stage_bulk_voids_cin7 from "./scripts/proof_of_delivery/stage_bulk_voids_cin7.js";
 
 // PSQL Setup
 import * as sync_master_store_list from "./scripts/psql/sync_master_store_list.js";
@@ -99,8 +101,12 @@ app.get("/audit_duplicates_cin7", (req, res) => {
 	audit_duplicates_cin7.run(req, res);
 });
 
-app.get("/audit_missing_po_cin7", (req, res) => {
-	audit_missing_po_cin7.run(req, res);
+app.get("/audit_missing_po_whole_foods_cin7", (req, res) => {
+	audit_missing_po_whole_foods_cin7.run(req, res);
+});
+
+app.get("/audit_missing_po_target_cin7", (req, res) => {
+	audit_missing_po_target_cin7.run(req, res);
 });
 
 // Finance
@@ -123,6 +129,10 @@ app.get("/send_sprouts_emails", (req, res) => {
 
 app.get("/send_sprouts_delivery_emails", (req, res) => {
 	send_sprouts_delivery_emails.run(req, res);
+});
+
+app.get("/stage_bulk_voids_cin7", (req, res) => {
+	stage_bulk_voids_cin7.run(req, res);
 });
 
 // SQL Rewrites

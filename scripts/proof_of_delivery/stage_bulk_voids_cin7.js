@@ -6,10 +6,9 @@ import excelDateToTimestamp from "../../util/excel_date_to_timestamp.js";
 
 dayjs.extend(customParseFormat);
 
-// Used to send data to Cin7 once
 export const run = async (req, res) => {
 	try {
-		await cin7InvoiceDateUpdate();
+		await stageCin7BulkVoid();
 		res.status(200).json({ status: "success" });
 	} catch (error) {
 		console.error("Error during API call:", error);
@@ -17,7 +16,7 @@ export const run = async (req, res) => {
 	}
 };
 
-async function cin7InvoiceDateUpdate() {
+async function stageCin7BulkVoid() {
 	const correctedData = await getCorrectedData();
 	console.log(`Items Found: ${correctedData.length}`);
 
@@ -51,9 +50,6 @@ async function getCorrectedData() {
 
 	for (const row of correctedData) {
 		const id = row.at(0);
-		// const invoiceDate = dayjs(excelDateToTimestamp(row.at(3)))
-		// 	.add(9, "hour")
-		// 	.toISOString();
 
 		const formattedRow = {
 			id: id,

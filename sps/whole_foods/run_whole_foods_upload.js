@@ -168,13 +168,13 @@ async function formatCin7Data(data) {
 				Address: [
 					{
 						AddressTypeCode: "ST",
-						AddressName: salesOrder.deliveryCompany.split("-").at(-1).trim(),
+						AddressName: salesOrder.deliveryCompany.split("- ").at(-1).trim(),
 					},
 					{
 						AddressTypeCode: "NES",
 						LocationCodeQualifier: 92,
-						AddressLocationNumber: salesOrder.lastName.split(" ").at(2),
-						AddressName: salesOrder.deliveryCompany.split("-").at(-1).trim(),
+						AddressLocationNumber: salesOrder.lastName.split(" ").at(2).trim(),
+						AddressName: salesOrder.deliveryCompany.split("- ").at(-1).trim(),
 					},
 					{
 						AddressTypeCode: "VN",

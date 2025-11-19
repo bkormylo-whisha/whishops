@@ -6,9 +6,10 @@ import utc from "dayjs/plugin/utc.js";
 
 dayjs.extend(utc);
 
+// LIVE DO NOT MODIFY
 export const run = async (req, res) => {
 	try {
-		await auditMissingPoCin7();
+		await auditMissingPoTargetCin7();
 		res.status(200).json({ status: "success" });
 	} catch (error) {
 		console.error("Error during API call:", error);
@@ -16,7 +17,7 @@ export const run = async (req, res) => {
 	}
 };
 
-async function auditMissingPoCin7() {
+async function auditMissingPoTargetCin7() {
 	const dateRange = getDateRange();
 	const ordersJson = await getRecentOrders(dateRange);
 	console.log(`Got ${ordersJson.length} orders from Cin7`);
@@ -30,7 +31,7 @@ async function auditMissingPoCin7() {
 	const dateFormat = "MM/DD/YYYY";
 	const formattedRange = `${dayjs(dateRange.start).format(dateFormat)} - ${dayjs(dateRange.end).format(dateFormat)}`;
 	const headerText =
-		"<h2>Checking for Whole Foods orders marked as 'Delivered' in Cin7 but with incorrect PO numbers</h2>" +
+		"<h2>Checking for Target orders marked as 'Delivered' in Cin7 but with incorrect PO numbers</h2>" +
 		`<h3>Dates Searched: ${formattedRange}</h3>`;
 	let bodyText = "";
 	const keys = [...ordersMappedByName.keys()];
@@ -60,10 +61,10 @@ async function auditMissingPoCin7() {
 		for (const order of orders) {
 			const enteredOrderNo = order.customerOrderNo;
 			let errorExplanation = "";
-			if (enteredOrderNo.length > 9) {
-				errorExplanation = "Order number can't be longer than 9 digits";
-			} else if (enteredOrderNo.length < 9 && enteredOrderNo.length !== 0) {
-				errorExplanation = "Order number can't be less than 9 digits";
+			if (enteredOrderNo.length > 6) {
+				errorExplanation = "Order number can't be longer than 6 digits";
+			} else if (enteredOrderNo.length < 6 && enteredOrderNo.length !== 0) {
+				errorExplanation = "Order number can't be less than 6 digits";
 			} else {
 				errorExplanation = "No order number entered";
 			}
@@ -89,7 +90,7 @@ async function auditMissingPoCin7() {
 			"kgada@whisha.com",
 			"ggenenbacher@whisha.com",
 		],
-		subject: `WHOLE FOODS EDI | RSR PO Error Report for Week of ${formattedRange}`,
+		subject: `TARGET EDI | RSR PO Error Report for Week of ${formattedRange}`,
 		html: headerText + bodyText,
 	});
 
@@ -111,7 +112,7 @@ async function getRecentOrders(dateRange) {
 	let hasMorePages = true;
 	const rowCount = 250;
 	while (hasMorePages) {
-		const sales_endpoint = `v1/SalesOrders?fields=id,createdBy,customerOrderNo,invoiceNumber,createdDate&where=invoiceDate>'${dateRange.start}' AND invoiceDate<='${dateRange.end}' AND stage='Delivered' AND source LIKE '%POS%' AND company LIKE '%Whole Foods%' AND customerOrderNo NOT LIKE '_________'&order=createdDate&page=${page}&rows=250`;
+		const sales_endpoint = `v1/SalesOrders?fields=id,createdBy,customerOrderNo,invoiceNumber,createdDate&where=invoiceDate>'${dateRange.start}' AND invoiceDate<='${dateRange.end}' AND stage='Delivered' AND source LIKE '%POS%' AND company LIKE '%Target%' AND customerOrderNo NOT LIKE '______'&order=createdDate&page=${page}&rows=250`;
 
 		try {
 			const response = await fetch(`${url}${sales_endpoint}`, options);
