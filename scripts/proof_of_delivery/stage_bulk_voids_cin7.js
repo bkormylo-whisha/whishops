@@ -30,7 +30,7 @@ async function stageCin7BulkVoid() {
 		correctedData.slice(correctedData.length - 4, correctedData.length),
 	);
 
-	// await insertUpdatedOrderDataCin7(correctedData);
+	await insertUpdatedOrderDataCin7(correctedData);
 }
 
 async function getCorrectedData() {

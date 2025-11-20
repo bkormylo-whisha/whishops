@@ -1,5 +1,3 @@
-"1B7uHHoQ6su0mnmeD_sjzrdEksvliG7HX4RFcyV834GM";
-
 import psqlHelper from "../../util/psql_helper.js";
 import { logRuntimeFor } from "../../util/log_runtime_for.js";
 import { sheetExtractor } from "../../util/sheet_extractor.js";
@@ -17,41 +15,6 @@ export const run = async (req, res) => {
 		res.status(500).send("An error occurred.");
 	}
 };
-
-const sqlheaders = [
-	"optimoroute_id",
-	"stop_id",
-	"store",
-	"date",
-	"stop_type",
-	"service_rep",
-	"invoice_number",
-	"blank",
-	"inv_adj",
-	"stop_completed_manual",
-	"stop_completed",
-	"urgency",
-	"optimo_status",
-	"direct_order",
-	"direct_invoice_number",
-	"direct_delivered",
-	"order_parked",
-	"rsr_optimoroute_notes",
-	"direct_order_dollar_amount_match",
-	"direct_order_quantity_match",
-	"full_service_invoice_number",
-	"full_service_dollar_amount_match",
-	"out_of_stock_count",
-	"po_number_direct",
-	"po_number_full_service",
-	"notes",
-	// "must_have_formula",
-	// "unique_id",
-	// "unique_id_doshit",
-	// "unique_id_target",
-	// "edi",
-	// "region",
-];
 
 async function updateVisitLogSheet() {
 	const visitLogData = await fetchVisitLogData();
@@ -89,13 +52,3 @@ async function insertToSheet(visitLogData) {
 
 	await visitLogSheetInserter.run(sheetReadyData);
 }
-
-// function getSyncDates() {
-// 	const now = dayjs();
-// 	const dateFormat = "YYYY-MM-DD";
-// 	const dateRangeToFetch = {
-// 		start: now.subtract(7, "day").format(dateFormat),
-// 		end: now.format(dateFormat),
-// 	};
-// 	return dateRangeToFetch;
-// }

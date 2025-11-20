@@ -84,7 +84,6 @@ async function auditMissingPoWholeFoodsCin7() {
 			"wsinks@whisha.com",
 			"dlindstrom@whisha.com",
 			"chris@whisha.com",
-			"jonathan@whisha.com",
 			"rocco@whisha.com",
 			"scott@whisha.com",
 			"kgada@whisha.com",
