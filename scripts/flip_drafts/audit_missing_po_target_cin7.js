@@ -89,6 +89,7 @@ async function auditMissingPoTargetCin7() {
 			"scott@whisha.com",
 			"kgada@whisha.com",
 			"ggenenbacher@whisha.com",
+			"vvaviya@whisha.com",
 		],
 		subject: `TARGET EDI | RSR PO Error Report for Week of ${formattedRange}`,
 		html: headerText + bodyText,

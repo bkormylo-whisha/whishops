@@ -33,6 +33,7 @@ import * as get_unpaid_invoices from "./scripts/proof_of_delivery/get_unpaid_inv
 import * as send_sprouts_emails from "./scripts/proof_of_delivery/send_sprouts_emails.js";
 import * as send_sprouts_delivery_emails from "./scripts/proof_of_delivery/send_sprouts_delivery_emails.js";
 import * as stage_bulk_voids_cin7 from "./scripts/proof_of_delivery/stage_bulk_voids_cin7.js";
+import * as get_bulk_ids_cin7 from "./scripts/proof_of_delivery/get_bulk_ids_cin7.js";
 
 // PSQL Setup
 import * as sync_master_store_list from "./scripts/psql/sync_master_store_list.js";
@@ -133,6 +134,10 @@ app.get("/send_sprouts_delivery_emails", (req, res) => {
 
 app.get("/stage_bulk_voids_cin7", (req, res) => {
 	stage_bulk_voids_cin7.run(req, res);
+});
+
+app.get("/get_bulk_ids_cin7", (req, res) => {
+	get_bulk_ids_cin7.run(req, res);
 });
 
 // SQL Rewrites
