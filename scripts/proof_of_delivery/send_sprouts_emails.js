@@ -36,8 +36,6 @@ async function sendSproutsInvoiceEmails() {
 		const storeName = row.at(4);
 		let pod = `${row.at(6)}`.split(",").at(0);
 		let pod_2 = `${row.at(7)}`.split(",").at(0);
-		console.log(`Pod: ${pod}`);
-		console.log(`Pod2: ${pod_2}`);
 
 		if (!pod || pod === "" || pod === "undefined") {
 			continue;
@@ -58,6 +56,8 @@ async function sendSproutsInvoiceEmails() {
 			html: emailHTML,
 		});
 	}
+
+	console.log("Script complete");
 }
 
 async function getDataFromInvoiceMailer() {
