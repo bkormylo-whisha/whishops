@@ -16,7 +16,6 @@ async function syncNorcalDirectOrderLog() {
 	const norcalDolSheetCoordinator = sheetCoordinator({
 		functionName: "Sync Norcal Direct Order Log",
 
-		// inSheetID: SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.copy,
 		inSheetID: SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.prod_id,
 		inSheetName:
 			SHEET_SCHEMAS.WHISHACCEL_DAILY_COVERAGE.pages.rtg_direct_order_log,
@@ -31,6 +30,9 @@ async function syncNorcalDirectOrderLog() {
 		insertTimestamp: true,
 		timestampCol: 4,
 		wipePreviousData: true,
+
+		sendErrorReport: true,
+		errorReportRecipients: ["bkormylo@whisha.com"],
 	});
 
 	await norcalDolSheetCoordinator.run();

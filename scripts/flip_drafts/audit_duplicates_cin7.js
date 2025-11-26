@@ -27,27 +27,29 @@ async function auditDuplicatesCin7() {
 		return;
 	}
 
-	const dateFormat = "MM/DD/YYYY";
-	const bodyText =
-		`Dates Searched: ${dayjs(dateRange.start).format(dateFormat)} - ${dayjs(dateRange.end).format(dateFormat)}` +
-		"\n\n" +
-		"The following references exist twice in Cin7 on open orders:" +
-		"\n" +
-		`${duplicates.map((order) => order.ref).join("\n")}`;
+	if (duplicates.length > 0) {
+		const dateFormat = "MM/DD/YYYY";
+		const bodyText =
+			`Dates Searched: ${dayjs(dateRange.start).format(dateFormat)} - ${dayjs(dateRange.end).format(dateFormat)}` +
+			"\n\n" +
+			"The following references exist twice in Cin7 on open orders:" +
+			"\n" +
+			`${duplicates.map((order) => order.ref).join("\n")}`;
 
-	const mailer = await mailSender();
-	await mailer.send({
-		recipients: [
-			"bkormylo@whisha.com",
-			"wsinks@whisha.com",
-			"dlindstrom@whisha.com",
-			// "tcarlozzi@whisha.com",
-			// "rramirez@whisha.com",
-			// "lklotz@whisha.com",
-		],
-		subject: `Cin7 - Duplicate Orders Detected ${dayjs(dateRange.start).format(dateFormat)} - ${dayjs(dateRange.end).format(dateFormat)}`,
-		bodyText: bodyText,
-	});
+		const mailer = await mailSender();
+		await mailer.send({
+			recipients: [
+				"bkormylo@whisha.com",
+				"wsinks@whisha.com",
+				"dlindstrom@whisha.com",
+				// "tcarlozzi@whisha.com",
+				// "rramirez@whisha.com",
+				// "lklotz@whisha.com",
+			],
+			subject: `Cin7 - Duplicate Orders Detected ${dayjs(dateRange.start).format(dateFormat)} - ${dayjs(dateRange.end).format(dateFormat)}`,
+			bodyText: bodyText,
+		});
+	}
 
 	console.log("Script run complete");
 }

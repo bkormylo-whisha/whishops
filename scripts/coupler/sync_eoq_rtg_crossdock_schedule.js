@@ -26,6 +26,9 @@ async function syncEoqRtgCrossdockSchedule() {
 		outSheetRange: "A2:AY176",
 
 		insertTimestamp: true,
+
+		sendErrorReport: true,
+		errorReportRecipients: ["bkormylo@whisha.com"],
 	});
 
 	await eoqRtgCrossdockScheduleSheetCoordinator.run();

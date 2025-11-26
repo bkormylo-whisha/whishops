@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import mailSender from "./mail_sender.js";
 import getAuthenticatedClient from "./google_auth.js";
 
 export function sheetCoordinator(params) {
@@ -20,6 +21,9 @@ export function sheetCoordinator(params) {
 		const insertTimestamp = params.insertTimestamp ?? false;
 		const timestampRow = params.timestampRow ?? 0;
 		const timestampCol = params.timestampCol ?? 0;
+
+		const sendErrorReport = params.sendErrorReport ?? false;
+		const errorReportRecipients = params.errorReportRecipients ?? [];
 
 		const wipePreviousData = params.wipePreviousData ?? false;
 
@@ -77,7 +81,15 @@ export function sheetCoordinator(params) {
 				console.log(`Updated cells: ${updateResponse.data.totalUpdatedCells}`);
 		} catch (e) {
 			console.error("Error during sheet operation:", e);
-			throw e;
+			if (sendErrorReport) {
+				const mailer = await mailSender();
+
+				await mailer.send({
+					recipients: errorReportRecipients,
+					subject: `Apps Script Failure: ${params.functionName ?? ""}`,
+					bodyText: `${params.functionName ?? ""} just failed`,
+				});
+			}
 		}
 
 		!silent && console.log("Script run complete");

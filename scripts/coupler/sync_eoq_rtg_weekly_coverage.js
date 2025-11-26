@@ -28,6 +28,9 @@ async function syncEoqRtgWeeklyCoverage() {
 
 		insertTimestamp: true,
 		timestampRow: 1,
+
+		sendErrorReport: true,
+		errorReportRecipients: ["bkormylo@whisha.com"],
 	});
 
 	await eoqRtgWeeklyCoverageSheetCoordinator.run();
