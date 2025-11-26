@@ -33,7 +33,8 @@ async function auditDuplicatesCin7() {
 		"\n\n" +
 		"The following references exist twice in Cin7 on open orders:" +
 		"\n" +
-		`${duplicates.map((order) => order.ref).join("\n")}`;
+		`${duplicates.map((order) => order.ref).join("\n")}` +
+		`${duplicates.length === 0 ?? "None Found"}`;
 
 	const mailer = await mailSender();
 	await mailer.send({
@@ -45,7 +46,7 @@ async function auditDuplicatesCin7() {
 			// "rramirez@whisha.com",
 			// "lklotz@whisha.com",
 		],
-		subject: `Cin7 - Duplicate Orders Detected ${dayjs(dateRange.start).format(dateFormat)} - ${dayjs(dateRange.end).format(dateFormat)}: ${duplicates.length > 0 ? duplicates.length : "none"} detected`,
+		subject: `Cin7 - Duplicate Order Checker ${dayjs(dateRange.start).format(dateFormat)} - ${dayjs(dateRange.end).format(dateFormat)}: ${duplicates.length > 0 ? duplicates.length : "none"} detected`,
 		bodyText: bodyText,
 	});
 
