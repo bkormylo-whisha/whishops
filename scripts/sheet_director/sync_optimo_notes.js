@@ -183,7 +183,7 @@ function mergeOrderData(orders, orderCompletionDetails, accountName) {
 			order.data.orderNo,
 			order.scheduleInformation?.driverName ?? " ",
 			order.data.date,
-			locationName,
+			order.data.location.locationName,
 			order.data.customField5,
 			mapStatus(detail.data.status || ""),
 			detail.data?.form?.note ?? "",
