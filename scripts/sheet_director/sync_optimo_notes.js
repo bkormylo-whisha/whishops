@@ -63,8 +63,8 @@ async function syncOptimoNotes() {
 
 async function uploadToSheet(data) {
 	const optimoNotesSheetInserter = sheetInserter({
-		outSheetID: "1w3FMxmJEYvGli8akqG6SkQSCqiUCHN7mW-udmiufEd0",
-		outSheetName: "Notes",
+		outSheetID: SHEET_SCHEMAS.OPTIMOROUTE_NOTES_REWORK.prod_id,
+		outSheetName: SHEET_SCHEMAS.OPTIMOROUTE_NOTES_REWORK.pages.notes,
 		outSheetRange: "A2:AO",
 		wipeAfterPush: true,
 	});

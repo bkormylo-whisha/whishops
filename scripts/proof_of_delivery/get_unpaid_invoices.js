@@ -54,6 +54,10 @@ async function getUnpaidInvoices() {
 		sheetData.safewayData,
 		podMap,
 	);
+	const mergedCentralMarketData = await mergeSheetDataWithPOD(
+		sheetData.centralMarketData,
+		podMap,
+	);
 
 	const sproutsSheetInserter = sheetInserter({
 		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
@@ -101,6 +105,17 @@ async function getUnpaidInvoices() {
 	});
 
 	safewaySheetInserter.run(mergedSafewayData.map((obj) => Object.values(obj)));
+
+	const centralMarketSheetInserter = sheetInserter({
+		outSheetID: SHEET_SCHEMAS.INVOICE_MAILER.prod_id,
+		outSheetName: SHEET_SCHEMAS.INVOICE_MAILER.pages.central_market,
+		outSheetRange: "A2:I",
+		wipePreviousData: true,
+	});
+
+	centralMarketSheetInserter.run(
+		mergedCentralMarketData.map((obj) => Object.values(obj)),
+	);
 }
 
 async function getDataFromArDashboard() {
@@ -122,6 +137,7 @@ async function getDataFromArDashboard() {
 				row.at(12).includes("Whole Foods") ||
 				row.at(12).includes("Kroger") ||
 				row.at(12).includes("Safeway") ||
+				row.at(12).includes("Central Market") ||
 				row.at(12).includes("Target")) &&
 			row.at(17) !== "Accounting" &&
 			row.at(17) !== "Dispatch and Delivery Issues",
@@ -133,6 +149,7 @@ async function getDataFromArDashboard() {
 	let targetData = [];
 	let krogerData = [];
 	let safewayData = [];
+	let centralMarketData = [];
 
 	for (const row of filteredData) {
 		const invoiceNumber = row.at(11);
@@ -184,6 +201,14 @@ async function getDataFromArDashboard() {
 				amount: amount,
 			};
 			safewayData.push(formattedRow);
+		} else if (row.at(12).includes("Central Market")) {
+			const formattedRow = {
+				id: invoiceNumber,
+				date: date,
+				email: storeName,
+				amount: amount,
+			};
+			centralMarketData.push(formattedRow);
 		}
 	}
 
@@ -196,6 +221,7 @@ async function getDataFromArDashboard() {
 		targetData: targetData,
 		krogerData: krogerData,
 		safewayData: safewayData,
+		centralMarketData: centralMarketData,
 	};
 }
 

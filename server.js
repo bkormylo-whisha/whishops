@@ -2,13 +2,12 @@ import express from "express";
 import "dotenv/config";
 
 // Active Sheets Scripts
-import * as sync_norcal_direct_order_log from "./scripts/coupler/sync_norcal_direct_order_log.js";
-import * as sync_eoq_rtg_crossdock_schedule from "./scripts/coupler/sync_eoq_rtg_crossdock_schedule.js";
-import * as sync_eoq_rtg_weekly_coverage from "./scripts/coupler/sync_eoq_rtg_weekly_coverage.js";
-import * as sync_optimo_notes from "./scripts/sheet_director/sync_optimo_notes.js";
-import * as get_optimo_completion_dates from "./scripts/invoice_date/get_optimo_completion_dates.js";
-import * as cin7_get_orders from "./scripts/sheet_director/cin7_get_orders.js";
-import * as run_geotab from "./scripts/geotab/run_geotab.js";
+import * as sync_norcal_direct_order_log from "./scripts/coupler/sync_norcal_direct_order_log.js"; // Trigger removed from NCOM, manual only now
+import * as sync_eoq_rtg_crossdock_schedule from "./scripts/coupler/sync_eoq_rtg_crossdock_schedule.js"; // Manual via scott
+import * as sync_eoq_rtg_weekly_coverage from "./scripts/coupler/sync_eoq_rtg_weekly_coverage.js"; // Manual via scott
+import * as sync_optimo_notes from "./scripts/sheet_director/sync_optimo_notes.js"; // Essential for optimonotes, rewritten to apps script
+import * as get_optimo_completion_dates from "./scripts/invoice_date/get_optimo_completion_dates.js"; // Report for tanner, not used since 12/1
+import * as run_geotab from "./scripts/geotab/run_geotab.js"; // No one uses this
 
 // Cin7 Automation
 import * as flip_drafts_cin7 from "./scripts/flip_drafts/flip_drafts_cin7.js";
@@ -27,6 +26,7 @@ import * as backup_and_clear_dol from "./scripts/backup/backup_and_clear_dol.js"
 import * as backup_dol from "./scripts/backup/backup_dol.js";
 
 // Finance Helpers
+import * as cin7_get_orders from "./scripts/sheet_director/cin7_get_orders.js"; // Hits a finance sheet
 import * as get_pod_optimo from "./scripts/proof_of_delivery/get_pod_optimo.js";
 import * as get_pod_cin7 from "./scripts/proof_of_delivery/get_pod_cin7.js";
 import * as get_unpaid_invoices from "./scripts/proof_of_delivery/get_unpaid_invoices.js";

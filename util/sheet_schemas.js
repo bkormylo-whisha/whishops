@@ -299,6 +299,7 @@ export const SHEET_SCHEMAS = {
 			target: "Target",
 			kroger: "Kroger",
 			safeway: "Safeway",
+			central_market: "Central Market",
 		},
 	},
 
@@ -306,6 +307,13 @@ export const SHEET_SCHEMAS = {
 		prod_id: "10wqT2aGlVrZcGwHTOuJ6bwr3BHbevm1Fiv0ZHTRpgm4",
 		pages: {
 			dashboard: "Dashboard",
+		},
+	},
+
+	OPTIMOROUTE_NOTES_REWORK: {
+		prod_id: "1w3FMxmJEYvGli8akqG6SkQSCqiUCHN7mW-udmiufEd0",
+		pages: {
+			notes: "Notes",
 		},
 	},
 };
